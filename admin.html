@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Administration - Air Afrique Observatoire</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,650;9..144,760&family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="admin-body">
+    <header class="site-header">
+      <a class="brand" href="index.html" aria-label="Retour au site public">
+        <span class="brand-mark">AO</span>
+        <span>Air Afrique Observatoire</span>
+      </a>
+      <nav class="nav-links" aria-label="Navigation administration">
+        <a href="index.html">Site public</a>
+        <a href="index.html#signalement">Nouveau témoignage</a>
+      </nav>
+    </header>
+
+    <main class="admin-shell">
+      <section class="admin-hero">
+        <div>
+          <p class="eyebrow">Administration</p>
+          <h1>Suivi des témoignages</h1>
+          <p>Consultez les signalements enregistrés en base, filtrez par trajet, date, incident ou mot-clé, puis préparez la vérification.</p>
+        </div>
+        <div class="admin-summary" aria-live="polite">
+          <span>Total affiché</span>
+          <strong id="report-count">0</strong>
+        </div>
+      </section>
+
+      <section class="admin-panel" aria-labelledby="filters-title">
+        <div class="panel-heading">
+          <h2 id="filters-title">Filtres</h2>
+          <button class="button ghost" id="reset-filters" type="button">Réinitialiser</button>
+        </div>
+        <form class="filters-grid" id="filters-form">
+          <label>
+            Trajet
+            <select name="route" id="route-filter">
+              <option value="">Tous les trajets</option>
+            </select>
+          </label>
+          <label>
+            Type d'incident
+            <select name="incident" id="incident-filter">
+              <option value="">Tous les incidents</option>
+            </select>
+          </label>
+          <label>
+            Statut
+            <select name="status" id="status-filter">
+              <option value="">Tous les statuts</option>
+            </select>
+          </label>
+          <label>
+            Date début
+            <input type="date" name="from" />
+          </label>
+          <label>
+            Date fin
+            <input type="date" name="to" />
+          </label>
+          <label class="search-field">
+            Recherche
+            <input type="search" name="q" placeholder="Nom, téléphone, mot dans le témoignage..." />
+          </label>
+        </form>
+      </section>
+
+      <section class="admin-panel">
+        <div class="panel-heading">
+          <h2>Témoignages</h2>
+          <p id="admin-status" role="status">Chargement...</p>
+        </div>
+        <div class="reports-list" id="reports-list"></div>
+      </section>
+    </main>
+
+    <script src="admin.js"></script>
+  </body>
+</html>
