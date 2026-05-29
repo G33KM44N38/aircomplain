@@ -4,6 +4,10 @@ const adminStatus = document.querySelector("#admin-status");
 const reportCount = document.querySelector("#report-count");
 const resetButton = document.querySelector("#reset-filters");
 
+function t(key, params) {
+  return window.AppI18n?.t(key, params) || key;
+}
+
 function escapeHtml(value) {
   return String(value || "")
     .replaceAll("&", "&amp;")
@@ -17,7 +21,7 @@ function formatDate(value) {
   if (!value) {
     return "-";
   }
-  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(new Date(`${value}T00:00:00`));
+  return window.AppI18n?.formatDate(value) || new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(new Date(`${value}T00:00:00`));
 }
 
 function fillSelect(select, values) {
@@ -49,8 +53,8 @@ function renderReports(reports) {
   if (!reports.length) {
     reportsList.innerHTML = `
       <div class="empty-state">
-        <h3>Aucun témoignage trouvé</h3>
-        <p>Modifiez les filtres ou déposez le premier témoignage pour alimenter l'observatoire.</p>
+        <h3>${t("empty.public_title")}</h3>
+        <p>${t("empty.public_text")}</p>
       </div>
     `;
     return;
@@ -62,22 +66,22 @@ function renderReports(reports) {
         <article class="report-item public-report">
           <header>
             <div>
-              <span class="report-id">Témoignage #${report.id}</span>
+              <span class="report-id">${t("report.testimonial")} #${report.id}</span>
               <h3>${escapeHtml(report.route)}</h3>
             </div>
             <span class="status-pill">${escapeHtml(report.incident)}</span>
           </header>
           <dl class="report-meta public-meta">
             <div>
-              <dt>Date du vol</dt>
+              <dt>${t("report.flight_date")}</dt>
               <dd>${formatDate(report.flightDate)}</dd>
             </div>
             <div>
-              <dt>Trajet</dt>
+              <dt>${t("report.route")}</dt>
               <dd>${escapeHtml(report.route)}</dd>
             </div>
             <div>
-              <dt>Catégorie</dt>
+              <dt>${t("report.category")}</dt>
               <dd>${escapeHtml(report.incident)}</dd>
             </div>
           </dl>
@@ -96,15 +100,15 @@ async function loadFilters() {
 }
 
 async function loadReports() {
-  adminStatus.textContent = "Chargement...";
+  adminStatus.textContent = t("status.loading");
   try {
     const response = await fetch(`/api/public/reports?${buildQuery().toString()}`);
     const data = await response.json();
     if (!response.ok) {
-      throw new Error(data.error || "Lecture impossible.");
+      throw new Error(data.error || t("status.read_error"));
     }
     renderReports(data.reports || []);
-    adminStatus.textContent = "Liste à jour";
+    adminStatus.textContent = t("status.updated");
   } catch (error) {
     adminStatus.textContent = error.message;
   }
@@ -119,3 +123,7 @@ resetButton.addEventListener("click", () => {
 });
 
 loadFilters().then(loadReports);
+
+window.addEventListener("languagechange", () => {
+  loadReports();
+});

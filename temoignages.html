@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Témoignages - Air Afrique Observatoire</title>
+    <title data-i18n-title="public.title">Témoignages - Air Afrique Observatoire</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -14,82 +14,87 @@
   </head>
   <body class="admin-body">
     <header class="site-header">
-      <a class="brand" href="index.html" aria-label="Retour à l'accueil">
+      <a class="brand" href="index.html" aria-label="Retour à l'accueil" data-i18n-aria-label="aria.back_home">
         <span class="brand-mark">AO</span>
         <span>Air Afrique Observatoire</span>
       </a>
-      <nav class="nav-links" aria-label="Navigation témoignages">
-        <a href="index.html">Accueil</a>
-        <a href="index.html#signalement">Déposer un témoignage</a>
+      <nav class="nav-links" aria-label="Navigation témoignages" data-i18n-aria-label="nav.testimonials_aria">
+        <a href="index.html" data-i18n="nav.home">Accueil</a>
+        <a href="index.html#signalement" data-i18n="nav.submit_testimonial">Déposer un témoignage</a>
       </nav>
+      <div class="language-switch" aria-label="Language">
+        <button type="button" data-language-option="fr">FR</button>
+        <button type="button" data-language-option="en">EN</button>
+      </div>
       <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="mobile-menu">
-        <span class="sr-only">Ouvrir le menu</span>
+        <span class="sr-only" data-i18n="nav.open_menu">Ouvrir le menu</span>
         <span></span>
         <span></span>
         <span></span>
       </button>
-      <nav class="mobile-menu" id="mobile-menu" aria-label="Navigation mobile">
-        <a href="index.html">Accueil</a>
-        <a href="temoignages.html">Tous les témoignages</a>
-        <a href="index.html#signalement">Déposer un témoignage</a>
+      <nav class="mobile-menu" id="mobile-menu" aria-label="Navigation mobile" data-i18n-aria-label="nav.mobile_aria">
+        <a href="index.html" data-i18n="nav.home">Accueil</a>
+        <a href="temoignages.html" data-i18n="nav.all_testimonials">Tous les témoignages</a>
+        <a href="index.html#signalement" data-i18n="nav.submit_testimonial">Déposer un témoignage</a>
       </nav>
     </header>
 
     <main class="admin-shell public-shell">
       <section class="admin-hero">
         <div>
-          <p class="eyebrow">Observatoire public</p>
-          <h1>Témoignages des voyageurs</h1>
-          <p>Parcourez les signalements anonymisés par trajet, date, type d'incident ou mot-clé.</p>
+          <p class="eyebrow" data-i18n="public.eyebrow">Observatoire public</p>
+          <h1 data-i18n="public.heading">Témoignages des voyageurs</h1>
+          <p data-i18n="public.copy">Parcourez les signalements anonymisés par trajet, date, type d'incident ou mot-clé.</p>
         </div>
         <div class="admin-summary" aria-live="polite">
-          <span>Témoignages</span>
+          <span data-i18n="public.summary">Témoignages</span>
           <strong id="report-count">0</strong>
         </div>
       </section>
 
       <section class="admin-panel" aria-labelledby="filters-title">
         <div class="panel-heading">
-          <h2 id="filters-title">Filtres</h2>
-          <button class="button ghost" id="reset-filters" type="button">Réinitialiser</button>
+          <h2 id="filters-title" data-i18n="filters.title">Filtres</h2>
+          <button class="button ghost" id="reset-filters" type="button" data-i18n="filters.reset">Réinitialiser</button>
         </div>
         <form class="filters-grid" id="filters-form">
           <label>
-            Trajet
+            <span data-i18n="filters.route">Trajet</span>
             <select name="route" id="route-filter">
-              <option value="">Tous les trajets</option>
+              <option value="" data-i18n="filters.all_routes">Tous les trajets</option>
             </select>
           </label>
           <label>
-            Type d'incident
+            <span data-i18n="filters.incident">Type d'incident</span>
             <select name="incident" id="incident-filter">
-              <option value="">Tous les incidents</option>
+              <option value="" data-i18n="filters.all_incidents">Tous les incidents</option>
             </select>
           </label>
           <label>
-            Date début
+            <span data-i18n="filters.from">Date début</span>
             <input type="date" name="from" />
           </label>
           <label>
-            Date fin
+            <span data-i18n="filters.to">Date fin</span>
             <input type="date" name="to" />
           </label>
           <label class="search-field">
-            Recherche
-            <input type="search" name="q" placeholder="Mot dans un témoignage..." />
+            <span data-i18n="filters.search">Recherche</span>
+            <input type="search" name="q" placeholder="Mot dans un témoignage..." data-i18n-placeholder="filters.public_placeholder" />
           </label>
         </form>
       </section>
 
       <section class="admin-panel">
         <div class="panel-heading">
-          <h2>Résultats</h2>
-          <p id="admin-status" role="status">Chargement...</p>
+          <h2 data-i18n="public.results">Résultats</h2>
+          <p id="admin-status" role="status" data-i18n="status.loading">Chargement...</p>
         </div>
         <div class="reports-list" id="reports-list"></div>
       </section>
     </main>
 
+    <script src="i18n.js"></script>
     <script src="navigation.js"></script>
     <script src="public-reports.js"></script>
   </body>

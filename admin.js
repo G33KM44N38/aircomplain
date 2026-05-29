@@ -5,11 +5,28 @@ const reportCount = document.querySelector("#report-count");
 const resetButton = document.querySelector("#reset-filters");
 
 const statusLabels = {
-  pending_review: "À vérifier",
-  verified: "Vérifié",
-  rejected: "Rejeté",
-  published: "Publié",
+  fr: {
+    pending_review: "À vérifier",
+    verified: "Vérifié",
+    rejected: "Rejeté",
+    published: "Publié",
+  },
+  en: {
+    pending_review: "To review",
+    verified: "Verified",
+    rejected: "Rejected",
+    published: "Published",
+  },
 };
+
+function t(key, params) {
+  return window.AppI18n?.t(key, params) || key;
+}
+
+function statusLabel(value) {
+  const language = window.AppI18n?.language || "fr";
+  return statusLabels[language]?.[value] || statusLabels.fr[value] || value;
+}
 
 function escapeHtml(value) {
   return String(value || "")
@@ -24,7 +41,7 @@ function formatDate(value) {
   if (!value) {
     return "-";
   }
-  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(new Date(`${value}T00:00:00`));
+  return window.AppI18n?.formatDate(value) || new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(new Date(`${value}T00:00:00`));
 }
 
 function fillSelect(select, values, labeler = (value) => value) {
@@ -60,8 +77,8 @@ function renderReports(reports) {
   if (!reports.length) {
     reportsList.innerHTML = `
       <div class="empty-state">
-        <h3>Aucun témoignage trouvé</h3>
-        <p>Modifiez les filtres ou ajoutez un nouveau signalement depuis le site public.</p>
+        <h3>${t("empty.public_title")}</h3>
+        <p>${t("empty.admin_text")}</p>
       </div>
     `;
     return;
@@ -76,28 +93,28 @@ function renderReports(reports) {
               <span class="report-id">#${report.id}</span>
               <h3>${escapeHtml(report.route)}</h3>
             </div>
-            <span class="status-pill">${escapeHtml(statusLabels[report.status] || report.status)}</span>
+            <span class="status-pill">${escapeHtml(statusLabel(report.status))}</span>
           </header>
           <dl class="report-meta">
             <div>
-              <dt>Date du vol</dt>
+              <dt>${t("report.flight_date")}</dt>
               <dd>${formatDate(report.flightDate)}</dd>
             </div>
             <div>
-              <dt>Incident</dt>
+              <dt>${t("report.incident")}</dt>
               <dd>${escapeHtml(report.incident)}</dd>
             </div>
             <div>
-              <dt>Email</dt>
+              <dt>${t("report.email")}</dt>
               <dd>${escapeHtml(report.email || "-")}</dd>
             </div>
             <div>
-              <dt>Téléphone</dt>
+              <dt>${t("report.phone")}</dt>
               <dd>${escapeHtml(report.phone || "-")}</dd>
             </div>
           </dl>
           <p class="report-message">${escapeHtml(report.message)}</p>
-          <footer>Reçu le ${new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(`${report.createdAt.replace(" ", "T")}Z`))}</footer>
+          <footer>${t("report.received", { date: window.AppI18n?.formatDateTime(report.createdAt) || new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(`${report.createdAt.replace(" ", "T")}Z`)) })}</footer>
         </article>
       `,
     )
@@ -109,19 +126,19 @@ async function loadFilters() {
   const filters = await response.json();
   fillSelect(document.querySelector("#route-filter"), filters.routes || []);
   fillSelect(document.querySelector("#incident-filter"), filters.incidents || []);
-  fillSelect(document.querySelector("#status-filter"), filters.statuses || [], (value) => statusLabels[value] || value);
+  fillSelect(document.querySelector("#status-filter"), filters.statuses || [], statusLabel);
 }
 
 async function loadReports() {
-  adminStatus.textContent = "Chargement...";
+  adminStatus.textContent = t("status.loading");
   try {
     const response = await fetch(`/api/reports?${buildQuery().toString()}`);
     const data = await response.json();
     if (!response.ok) {
-      throw new Error(data.error || "Lecture impossible.");
+      throw new Error(data.error || t("status.read_error"));
     }
     renderReports(data.reports || []);
-    adminStatus.textContent = "Liste à jour";
+    adminStatus.textContent = t("status.updated");
   } catch (error) {
     adminStatus.textContent = error.message;
   }
@@ -141,3 +158,7 @@ resetButton.addEventListener("click", () => {
 });
 
 loadFilters().then(loadReports);
+
+window.addEventListener("languagechange", () => {
+  loadFilters().then(loadReports);
+});

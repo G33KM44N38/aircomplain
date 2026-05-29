@@ -3,10 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Air Afrique Observatoire</title>
+    <title data-i18n-title="home.title">Air Afrique Observatoire</title>
     <meta
       name="description"
       content="Observatoire citoyen de la qualité des services aériens entre l'Afrique et l'Europe."
+      data-i18n-content="home.meta_description"
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -18,27 +19,31 @@
   </head>
   <body>
     <header class="site-header">
-      <a class="brand" href="#top" aria-label="Accueil Air Afrique Observatoire">
+      <a class="brand" href="#top" aria-label="Accueil Air Afrique Observatoire" data-i18n-aria-label="aria.home">
         <span class="brand-mark">AO</span>
         <span>Air Afrique Observatoire</span>
       </a>
-      <nav class="nav-links" aria-label="Navigation principale">
-        <a href="#observatoire">Observatoire</a>
-        <a href="#temoignages">Témoignages</a>
-        <a href="temoignages.html">Tous les témoignages</a>
-        <a href="#signalement">Signaler</a>
+      <nav class="nav-links" aria-label="Navigation principale" data-i18n-aria-label="nav.main_aria">
+        <a href="#observatoire" data-i18n="nav.observatory">Observatoire</a>
+        <a href="#temoignages" data-i18n="nav.testimonials">Témoignages</a>
+        <a href="temoignages.html" data-i18n="nav.all_testimonials">Tous les témoignages</a>
+        <a href="#signalement" data-i18n="nav.report">Signaler</a>
       </nav>
+      <div class="language-switch" aria-label="Language">
+        <button type="button" data-language-option="fr">FR</button>
+        <button type="button" data-language-option="en">EN</button>
+      </div>
       <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="mobile-menu">
-        <span class="sr-only">Ouvrir le menu</span>
+        <span class="sr-only" data-i18n="nav.open_menu">Ouvrir le menu</span>
         <span></span>
         <span></span>
         <span></span>
       </button>
-      <nav class="mobile-menu" id="mobile-menu" aria-label="Navigation mobile">
-        <a href="#observatoire">Observatoire</a>
-        <a href="#temoignages">Témoignages</a>
-        <a href="temoignages.html">Tous les témoignages</a>
-        <a href="#signalement">Déposer un témoignage</a>
+      <nav class="mobile-menu" id="mobile-menu" aria-label="Navigation mobile" data-i18n-aria-label="nav.mobile_aria">
+        <a href="#observatoire" data-i18n="nav.observatory">Observatoire</a>
+        <a href="#temoignages" data-i18n="nav.testimonials">Témoignages</a>
+        <a href="temoignages.html" data-i18n="nav.all_testimonials">Tous les témoignages</a>
+        <a href="#signalement" data-i18n="nav.submit_testimonial">Déposer un témoignage</a>
       </nav>
     </header>
 
@@ -47,64 +52,64 @@
         <img src="assets/hero-observatoire.png" alt="" class="hero-media" />
         <div class="hero-overlay"></div>
         <div class="hero-content">
-          <p class="eyebrow">Plateforme citoyenne Afrique-Europe</p>
-          <h1 id="hero-title">Observer, documenter, améliorer l'expérience des passagers africains.</h1>
-          <p class="hero-copy">
+          <p class="eyebrow" data-i18n="home.eyebrow">Plateforme citoyenne Afrique-Europe</p>
+          <h1 id="hero-title" data-i18n="home.hero_title">Observer, documenter, améliorer l'expérience des passagers africains.</h1>
+          <p class="hero-copy" data-i18n="home.hero_copy">
             Un espace indépendant pour centraliser les témoignages, suivre les incidents récurrents
             et transformer les expériences de voyage en données utiles.
           </p>
           <div class="hero-actions">
-            <a class="button primary" href="#signalement">Déposer un témoignage</a>
-            <a class="button secondary" href="temoignages.html">Explorer les témoignages</a>
+            <a class="button primary" href="#signalement" data-i18n="home.cta_report">Déposer un témoignage</a>
+            <a class="button secondary" href="temoignages.html" data-i18n="home.cta_explore">Explorer les témoignages</a>
           </div>
         </div>
-        <aside class="hero-panel" aria-label="Indicateurs de démonstration">
+        <aside class="hero-panel" aria-label="Indicateurs de démonstration" data-i18n-aria-label="aria.demo_metrics">
           <div>
             <strong>312</strong>
-            <span>témoignages collectés</span>
+            <span data-i18n="home.metric_reports">témoignages collectés</span>
           </div>
           <div>
             <strong>18</strong>
-            <span>routes suivies</span>
+            <span data-i18n="home.metric_routes">routes suivies</span>
           </div>
           <div>
             <strong>64%</strong>
-            <span>signalent une communication insuffisante</span>
+            <span data-i18n="home.metric_comm">signalent une communication insuffisante</span>
           </div>
         </aside>
       </section>
 
       <section class="section intro" id="observatoire">
         <div class="section-heading">
-          <p class="eyebrow">MVP opérationnel</p>
-          <h2>Un observatoire centré sur les faits, pas sur l'accusation.</h2>
+          <p class="eyebrow" data-i18n="home.mvp">MVP opérationnel</p>
+          <h2 data-i18n="home.facts_title">Un observatoire centré sur les faits, pas sur l'accusation.</h2>
         </div>
         <div class="intro-grid">
           <article>
             <span class="icon">01</span>
-            <h3>Collecter</h3>
-            <p>Des récits structurés par date, route, type d'incident, preuves disponibles et niveau d'impact.</p>
+            <h3 data-i18n="home.collect_title">Collecter</h3>
+            <p data-i18n="home.collect_text">Des récits structurés par date, route, type d'incident, preuves disponibles et niveau d'impact.</p>
           </article>
           <article>
             <span class="icon">02</span>
-            <h3>Vérifier</h3>
-            <p>Une modération éditoriale protège les personnes, filtre les accusations non étayées et anonymise les données.</p>
+            <h3 data-i18n="home.verify_title">Vérifier</h3>
+            <p data-i18n="home.verify_text">Une modération éditoriale protège les personnes, filtre les accusations non étayées et anonymise les données.</p>
           </article>
           <article>
             <span class="icon">03</span>
-            <h3>Publier</h3>
-            <p>Des tendances lisibles, des recommandations pratiques et des dossiers comparatifs pour ouvrir le dialogue.</p>
+            <h3 data-i18n="home.publish_title">Publier</h3>
+            <p data-i18n="home.publish_text">Des tendances lisibles, des recommandations pratiques et des dossiers comparatifs pour ouvrir le dialogue.</p>
           </article>
         </div>
       </section>
 
       <section class="dashboard">
         <div class="section-heading compact">
-          <p class="eyebrow">Tableau de bord</p>
-          <h2>Suivi des lignes signalées</h2>
+          <p class="eyebrow" data-i18n="home.dashboard">Tableau de bord</p>
+          <h2 data-i18n="home.routes_title">Suivi des lignes signalées</h2>
         </div>
-        <div class="route-tabs" role="tablist" aria-label="Filtrer par route">
-          <button class="tab active" data-route="all" type="button">Toutes</button>
+        <div class="route-tabs" role="tablist" aria-label="Filtrer par route" data-i18n-aria-label="home.routes_aria">
+          <button class="tab active" data-route="all" type="button" data-i18n="home.tab_all">Toutes</button>
           <button class="tab" data-route="dakar" type="button">Dakar</button>
           <button class="tab" data-route="abidjan" type="button">Abidjan</button>
           <button class="tab" data-route="douala" type="button">Douala</button>
@@ -115,9 +120,9 @@
 
       <section class="section split" id="temoignages">
         <div>
-          <p class="eyebrow">Témoignages récents</p>
-          <h2>Des expériences classées pour repérer les problèmes récurrents.</h2>
-          <p>
+          <p class="eyebrow" data-i18n="home.recent">Témoignages récents</p>
+          <h2 data-i18n="home.recent_title">Des expériences classées pour repérer les problèmes récurrents.</h2>
+          <p data-i18n="home.recent_copy">
             Les exemples ci-dessous illustrent le format public visé: factuel, daté, anonymisé,
             et centré sur ce qui peut être vérifié ou amélioré.
           </p>
@@ -127,76 +132,78 @@
 
       <section class="report-band" id="signalement">
         <div class="report-copy">
-          <p class="eyebrow">Contribuer</p>
-          <h2>Signaler une expérience de voyage</h2>
-          <p>
+          <p class="eyebrow" data-i18n="home.contribute">Contribuer</p>
+          <h2 data-i18n="home.form_title">Signaler une expérience de voyage</h2>
+          <p data-i18n="home.form_copy">
             Ce formulaire de démonstration prépare les champs clés du futur produit: route, date,
             catégorie, contact, impact et consentement de publication.
           </p>
         </div>
         <form class="report-form" id="report-form">
           <label>
-            Route concernée
+            <span data-i18n="form.route">Route concernée</span>
             <select name="route" required>
-              <option value="">Choisir une route</option>
+              <option value="" data-i18n="form.route_placeholder">Choisir une route</option>
               <option>Paris - Dakar</option>
               <option>Paris - Abidjan</option>
               <option>Paris - Douala</option>
               <option>Paris - Kinshasa</option>
-              <option>Autre route Afrique-Europe</option>
+              <option data-i18n="form.route_other">Autre route Afrique-Europe</option>
             </select>
           </label>
           <label>
-            Type d'incident
+            <span data-i18n="form.incident">Type d'incident</span>
             <select name="incident" required>
-              <option value="">Choisir une catégorie</option>
-              <option>Retard important</option>
-              <option>Annulation</option>
-              <option>Bagage perdu ou retardé</option>
-              <option>Communication insuffisante</option>
-              <option>Accueil ou assistance</option>
+              <option value="" data-i18n="form.incident_placeholder">Choisir une catégorie</option>
+              <option data-i18n="incident.delay">Retard important</option>
+              <option data-i18n="incident.cancel">Annulation</option>
+              <option data-i18n="incident.baggage">Bagage perdu ou retardé</option>
+              <option data-i18n="incident.communication">Communication insuffisante</option>
+              <option data-i18n="incident.assistance">Accueil ou assistance</option>
             </select>
           </label>
           <label>
-            Date du vol
+            <span data-i18n="form.flight_date">Date du vol</span>
             <input type="date" name="flightDate" required />
           </label>
           <div class="contact-grid">
             <label>
-              Email
+              <span data-i18n="form.email">Email</span>
               <input type="email" name="email" autocomplete="email" placeholder="nom@example.com" />
             </label>
             <label>
-              Téléphone
+              <span data-i18n="form.phone">Téléphone</span>
               <input type="tel" name="phone" autocomplete="tel" placeholder="+225 07 00 00 00 00" />
             </label>
           </div>
-          <p class="field-note">Indiquez au moins un moyen de contact pour le suivi du dossier.</p>
+          <p class="field-note" data-i18n="form.contact_note">Indiquez au moins un moyen de contact pour le suivi du dossier.</p>
           <label>
-            Votre témoignage
+            <span data-i18n="form.message">Votre témoignage</span>
             <textarea
               name="message"
               rows="5"
               minlength="40"
               placeholder="Décrivez les faits observables: heure, aéroport, informations reçues, conséquences..."
+              data-i18n-placeholder="form.message_placeholder"
               required
             ></textarea>
           </label>
           <label class="checkbox">
             <input type="checkbox" name="consent" required />
-            <span>J'accepte que mon témoignage soit vérifié et publié de façon anonymisée.</span>
+            <span data-i18n="form.consent">J'accepte que mon témoignage soit vérifié et publié de façon anonymisée.</span>
           </label>
-          <button class="button primary full" type="submit">Envoyer pour vérification</button>
+          <button class="button primary full" type="submit" data-i18n="form.submit">Envoyer pour vérification</button>
           <p class="form-status" id="form-status" role="status"></p>
         </form>
       </section>
     </main>
 
     <footer class="footer">
-      <p>Air Afrique Observatoire est un prototype indépendant. Les données affichées sont fictives pour le MVP.</p>
-      <a href="#top">Retour en haut</a>
+      <p data-i18n="footer.prototype">Air Afrique Observatoire est un prototype indépendant. Les données affichées sont fictives pour le MVP.</p>
+      <a href="#top" data-i18n="footer.top">Retour en haut</a>
     </footer>
 
+    <script src="i18n.js"></script>
     <script src="navigation.js"></script>
     <script src="script.js"></script>
   </body>
