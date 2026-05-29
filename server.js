@@ -60,7 +60,10 @@ async function initDb() {
   `);
   await runSql(`
     DELETE FROM reports
-    WHERE message = 'Test de verification production avec un temoignage assez long pour valider lenregistrement cote serveur Render.';
+    WHERE message IN (
+      'Test de verification production avec un temoignage assez long pour valider lenregistrement cote serveur Render.',
+      'TEST_QA_AIRCOMPLAIN temoignage temporaire pour verifier le formulaire, les filtres publics et lanonymisation des coordonnees.'
+    );
   `);
 }
 
