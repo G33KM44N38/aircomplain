@@ -46,6 +46,15 @@ a {
   backdrop-filter: blur(18px);
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
 .brand {
   display: inline-flex;
   align-items: center;
@@ -75,6 +84,83 @@ a {
 
 .nav-links a:hover {
   color: var(--green-dark);
+}
+
+.menu-toggle,
+.mobile-menu {
+  display: none;
+}
+
+.menu-toggle {
+  width: 44px;
+  height: 44px;
+  position: relative;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--white);
+  cursor: pointer;
+}
+
+.menu-toggle span:not(.sr-only) {
+  position: absolute;
+  left: 12px;
+  display: block;
+  width: 18px;
+  height: 2px;
+  border-radius: 99px;
+  background: var(--green-dark);
+  transition: transform 180ms ease, opacity 180ms ease;
+}
+
+.menu-toggle span:nth-child(2) {
+  top: 15px;
+}
+
+.menu-toggle span:nth-child(3) {
+  top: 21px;
+}
+
+.menu-toggle span:nth-child(4) {
+  top: 27px;
+}
+
+.menu-open .menu-toggle span:nth-child(2) {
+  transform: translateY(6px) rotate(45deg);
+}
+
+.menu-open .menu-toggle span:nth-child(3) {
+  opacity: 0;
+}
+
+.menu-open .menu-toggle span:nth-child(4) {
+  transform: translateY(-6px) rotate(-45deg);
+}
+
+.mobile-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: clamp(14px, 4vw, 56px);
+  left: clamp(14px, 4vw, 56px);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--white);
+  box-shadow: var(--shadow);
+  padding: 8px;
+}
+
+.mobile-menu a {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  border-radius: 6px;
+  padding: 12px 14px;
+  color: var(--green-dark);
+  font-weight: 900;
+}
+
+.mobile-menu a:hover {
+  background: var(--sky);
 }
 
 .hero {
@@ -657,6 +743,14 @@ textarea {
 @media (max-width: 900px) {
   .nav-links {
     display: none;
+  }
+
+  .menu-toggle {
+    display: grid;
+  }
+
+  .menu-open .mobile-menu {
+    display: block;
   }
 
   .hero {
