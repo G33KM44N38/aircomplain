@@ -63,7 +63,8 @@ async function initDb() {
     WHERE message IN (
       'Test de verification production avec un temoignage assez long pour valider lenregistrement cote serveur Render.',
       'TEST_QA_AIRCOMPLAIN temoignage temporaire pour verifier le formulaire, les filtres publics et lanonymisation des coordonnees.'
-    );
+    )
+    OR message LIKE 'TEST_QA_AIRCOMPLAIN%';
   `);
 }
 
