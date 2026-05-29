@@ -58,6 +58,10 @@ async function initDb() {
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
   `);
+  await runSql(`
+    DELETE FROM reports
+    WHERE message = 'Test de verification production avec un temoignage assez long pour valider lenregistrement cote serveur Render.';
+  `);
 }
 
 function sendJson(response, statusCode, payload) {
