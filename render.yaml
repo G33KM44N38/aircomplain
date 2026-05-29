@@ -2,15 +2,9 @@ services:
   - type: web
     name: air-afrique-observatoire
     runtime: node
-    plan: starter
+    plan: free
     buildCommand: npm install
     startCommand: npm start
     envVars:
-      - key: DATA_DIR
-        value: /opt/render/project/src/storage
       - key: ADMIN_TOKEN
         generateValue: true
-    disk:
-      name: air-observatoire-data
-      mountPath: /opt/render/project/src/storage
-      sizeGB: 1
