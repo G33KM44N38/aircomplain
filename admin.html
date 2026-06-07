@@ -60,29 +60,64 @@
         <form class="filters-grid" id="filters-form">
           <label>
             <span data-i18n="filters.route">Trajet</span>
-            <select name="route" id="route-filter">
-              <option value="" data-i18n="filters.all_routes">Tous les trajets</option>
-            </select>
+            <input type="hidden" name="route" id="route-filter" />
+            <button class="filter-trigger" type="button" id="route-filter-trigger" aria-expanded="false" aria-controls="route-filter-picker">
+              <span data-filter-label data-empty-label="filters.all_routes">Tous les trajets</span>
+              <span class="picker-icon" aria-hidden="true">▾</span>
+            </button>
+            <div class="filter-picker" id="route-filter-picker" hidden role="listbox" aria-label="Trajet"></div>
           </label>
           <label>
             <span data-i18n="filters.incident">Type d'incident</span>
-            <select name="incident" id="incident-filter">
-              <option value="" data-i18n="filters.all_incidents">Tous les incidents</option>
-            </select>
+            <input type="hidden" name="incident" id="incident-filter" />
+            <button class="filter-trigger" type="button" id="incident-filter-trigger" aria-expanded="false" aria-controls="incident-filter-picker">
+              <span data-filter-label data-empty-label="filters.all_incidents">Tous les incidents</span>
+              <span class="picker-icon" aria-hidden="true">▾</span>
+            </button>
+            <div class="filter-picker" id="incident-filter-picker" hidden role="listbox" aria-label="Type d'incident"></div>
           </label>
           <label>
             <span data-i18n="filters.status">Statut</span>
-            <select name="status" id="status-filter">
-              <option value="" data-i18n="filters.all_statuses">Tous les statuts</option>
-            </select>
+            <input type="hidden" name="status" id="status-filter" />
+            <button class="filter-trigger" type="button" id="status-filter-trigger" aria-expanded="false" aria-controls="status-filter-picker">
+              <span data-filter-label data-empty-label="filters.all_statuses">Tous les statuts</span>
+              <span class="picker-icon" aria-hidden="true">▾</span>
+            </button>
+            <div class="filter-picker" id="status-filter-picker" hidden role="listbox" aria-label="Statut"></div>
           </label>
           <label>
             <span data-i18n="filters.from">Date début</span>
-            <input type="date" name="from" />
+            <input type="hidden" name="from" id="from-filter" />
+            <button class="filter-trigger" type="button" id="from-filter-trigger" aria-expanded="false" aria-controls="from-filter-picker">
+              <span data-date-label data-empty-label="filters.from">Date début</span>
+              <span class="date-icon" aria-hidden="true">▾</span>
+            </button>
+            <div class="date-picker admin-date-picker" id="from-filter-picker" hidden>
+              <div class="date-picker-header">
+                <button type="button" class="date-nav" data-date-prev aria-label="Mois précédent">‹</button>
+                <strong data-date-month></strong>
+                <button type="button" class="date-nav" data-date-next aria-label="Mois suivant">›</button>
+              </div>
+              <div class="date-weekdays" data-date-weekdays></div>
+              <div class="date-grid" data-date-grid></div>
+            </div>
           </label>
           <label>
             <span data-i18n="filters.to">Date fin</span>
-            <input type="date" name="to" />
+            <input type="hidden" name="to" id="to-filter" />
+            <button class="filter-trigger" type="button" id="to-filter-trigger" aria-expanded="false" aria-controls="to-filter-picker">
+              <span data-date-label data-empty-label="filters.to">Date fin</span>
+              <span class="date-icon" aria-hidden="true">▾</span>
+            </button>
+            <div class="date-picker admin-date-picker" id="to-filter-picker" hidden>
+              <div class="date-picker-header">
+                <button type="button" class="date-nav" data-date-prev aria-label="Mois précédent">‹</button>
+                <strong data-date-month></strong>
+                <button type="button" class="date-nav" data-date-next aria-label="Mois suivant">›</button>
+              </div>
+              <div class="date-weekdays" data-date-weekdays></div>
+              <div class="date-grid" data-date-grid></div>
+            </div>
           </label>
           <label class="search-field">
             <span data-i18n="filters.search">Recherche</span>

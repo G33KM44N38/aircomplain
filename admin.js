@@ -3,6 +3,8 @@ const reportsList = document.querySelector("#reports-list");
 const adminStatus = document.querySelector("#admin-status");
 const reportCount = document.querySelector("#report-count");
 const resetButton = document.querySelector("#reset-filters");
+const choiceFilters = {};
+const dateFilters = {};
 
 const statusLabels = {
   fr: {
@@ -44,16 +46,235 @@ function formatDate(value) {
   return window.AppI18n?.formatDate(value) || new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(new Date(`${value}T00:00:00`));
 }
 
-function fillSelect(select, values, labeler = (value) => value) {
-  const firstOption = select.querySelector("option");
-  select.innerHTML = "";
-  select.append(firstOption);
-  values.forEach((value) => {
-    const option = document.createElement("option");
-    option.value = value;
-    option.textContent = labeler(value);
-    select.append(option);
+function formatIsoDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function dateFromIso(value) {
+  if (!value) {
+    return null;
+  }
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function filterLabel(input, label, emptyKey, labeler = (value) => value) {
+  label.textContent = input.value ? labeler(input.value) : t(emptyKey);
+}
+
+function closeAllPickers(except) {
+  document.querySelectorAll(".filter-picker, .admin-date-picker").forEach((picker) => {
+    if (picker !== except) {
+      picker.hidden = true;
+    }
   });
+  document.querySelectorAll(".filter-trigger").forEach((trigger) => {
+    if (trigger.getAttribute("aria-controls") !== except?.id) {
+      trigger.setAttribute("aria-expanded", "false");
+    }
+  });
+}
+
+function setupChoiceFilter({ name, emptyKey, labeler = (value) => value }) {
+  const input = document.querySelector(`#${name}-filter`);
+  const trigger = document.querySelector(`#${name}-filter-trigger`);
+  const picker = document.querySelector(`#${name}-filter-picker`);
+  const label = trigger.querySelector("[data-filter-label]");
+  let values = [];
+
+  function closePicker() {
+    picker.hidden = true;
+    trigger.setAttribute("aria-expanded", "false");
+  }
+
+  function renderOptions() {
+    const options = ["", ...values];
+    picker.innerHTML = options
+      .map((value) => {
+        const selected = input.value === value;
+        const text = value ? labeler(value) : t(emptyKey);
+        return `
+          <button
+            type="button"
+            class="filter-option${selected ? " selected" : ""}"
+            role="option"
+            aria-selected="${selected}"
+            data-filter-value="${escapeHtml(value)}"
+          >${escapeHtml(text)}</button>
+        `;
+      })
+      .join("");
+  }
+
+  function openPicker() {
+    closeAllPickers(picker);
+    renderOptions();
+    picker.hidden = false;
+    trigger.setAttribute("aria-expanded", "true");
+  }
+
+  trigger.addEventListener("click", () => {
+    if (picker.hidden) {
+      openPicker();
+    } else {
+      closePicker();
+    }
+  });
+
+  picker.addEventListener("click", (event) => {
+    const option = event.target.closest("[data-filter-value]");
+    if (!option) {
+      return;
+    }
+    input.value = option.dataset.filterValue;
+    filterLabel(input, label, emptyKey, labeler);
+    closePicker();
+    loadReports();
+  });
+
+  trigger.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      closePicker();
+    }
+  });
+
+  choiceFilters[name] = {
+    setValues(nextValues) {
+      values = nextValues;
+      renderOptions();
+      filterLabel(input, label, emptyKey, labeler);
+    },
+    reset() {
+      input.value = "";
+      filterLabel(input, label, emptyKey, labeler);
+      renderOptions();
+    },
+    refreshLabel() {
+      filterLabel(input, label, emptyKey, labeler);
+      renderOptions();
+    },
+  };
+}
+
+function setupDateFilter({ name }) {
+  const input = document.querySelector(`#${name}-filter`);
+  const trigger = document.querySelector(`#${name}-filter-trigger`);
+  const picker = document.querySelector(`#${name}-filter-picker`);
+  const label = trigger.querySelector("[data-date-label]");
+  const emptyKey = label.dataset.emptyLabel;
+  const monthLabel = picker.querySelector("[data-date-month]");
+  const weekdays = picker.querySelector("[data-date-weekdays]");
+  const grid = picker.querySelector("[data-date-grid]");
+  let visibleMonth = new Date();
+  visibleMonth.setDate(1);
+
+  function locale() {
+    return window.AppI18n?.language === "en" ? "en-US" : "fr-FR";
+  }
+
+  function updateLabel() {
+    const selected = dateFromIso(input.value);
+    label.textContent = selected ? new Intl.DateTimeFormat(locale(), { dateStyle: "medium" }).format(selected) : t(emptyKey);
+  }
+
+  function renderDatePicker() {
+    const selectedIso = input.value;
+    const monthFormatter = new Intl.DateTimeFormat(locale(), { month: "long", year: "numeric" });
+    const weekdayFormatter = new Intl.DateTimeFormat(locale(), { weekday: "short" });
+    const firstDay = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth(), 1);
+    const firstWeekday = (firstDay.getDay() + 6) % 7;
+    const daysInMonth = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 0).getDate();
+    const todayIso = formatIsoDate(new Date());
+
+    monthLabel.textContent = monthFormatter.format(visibleMonth);
+    weekdays.innerHTML = Array.from({ length: 7 }, (_, index) => {
+      const monday = new Date(2026, 0, 5 + index);
+      return `<span>${weekdayFormatter.format(monday)}</span>`;
+    }).join("");
+
+    const cells = [];
+    for (let i = 0; i < firstWeekday; i += 1) {
+      cells.push('<span class="date-empty"></span>');
+    }
+    for (let day = 1; day <= daysInMonth; day += 1) {
+      const date = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth(), day);
+      const iso = formatIsoDate(date);
+      cells.push(`
+        <button
+          type="button"
+          class="date-day${iso === selectedIso ? " selected" : ""}${iso === todayIso ? " today" : ""}"
+          data-date-value="${iso}"
+          aria-pressed="${iso === selectedIso}"
+        >${day}</button>
+      `);
+    }
+    grid.innerHTML = cells.join("");
+  }
+
+  function closePicker() {
+    picker.hidden = true;
+    trigger.setAttribute("aria-expanded", "false");
+  }
+
+  function openPicker() {
+    const selected = dateFromIso(input.value);
+    if (selected) {
+      visibleMonth = new Date(selected.getFullYear(), selected.getMonth(), 1);
+    }
+    closeAllPickers(picker);
+    renderDatePicker();
+    picker.hidden = false;
+    trigger.setAttribute("aria-expanded", "true");
+  }
+
+  trigger.addEventListener("click", () => {
+    if (picker.hidden) {
+      openPicker();
+    } else {
+      closePicker();
+    }
+  });
+
+  picker.querySelector("[data-date-prev]").addEventListener("click", () => {
+    visibleMonth = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() - 1, 1);
+    renderDatePicker();
+  });
+
+  picker.querySelector("[data-date-next]").addEventListener("click", () => {
+    visibleMonth = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 1);
+    renderDatePicker();
+  });
+
+  grid.addEventListener("click", (event) => {
+    const day = event.target.closest("[data-date-value]");
+    if (!day) {
+      return;
+    }
+    input.value = day.dataset.dateValue;
+    updateLabel();
+    closePicker();
+    loadReports();
+  });
+
+  dateFilters[name] = {
+    reset() {
+      input.value = "";
+      visibleMonth = new Date();
+      visibleMonth.setDate(1);
+      updateLabel();
+      renderDatePicker();
+    },
+    refreshLabel() {
+      updateLabel();
+      renderDatePicker();
+    },
+  };
+
+  updateLabel();
+  renderDatePicker();
 }
 
 function buildQuery() {
@@ -124,9 +345,9 @@ function renderReports(reports) {
 async function loadFilters() {
   const response = await fetch("/api/reports/filters");
   const filters = await response.json();
-  fillSelect(document.querySelector("#route-filter"), filters.routes || []);
-  fillSelect(document.querySelector("#incident-filter"), filters.incidents || []);
-  fillSelect(document.querySelector("#status-filter"), filters.statuses || [], statusLabel);
+  choiceFilters.route.setValues(filters.routes || []);
+  choiceFilters.incident.setValues(filters.incidents || []);
+  choiceFilters.status.setValues(filters.statuses || []);
 }
 
 async function loadReports() {
@@ -154,11 +375,27 @@ filtersForm.addEventListener("change", () => {
 
 resetButton.addEventListener("click", () => {
   filtersForm.reset();
+  Object.values(choiceFilters).forEach((filter) => filter.reset());
+  Object.values(dateFilters).forEach((filter) => filter.reset());
   loadReports();
 });
+
+document.addEventListener("click", (event) => {
+  if (!event.target.closest(".filter-trigger, .filter-picker, .admin-date-picker")) {
+    closeAllPickers();
+  }
+});
+
+setupChoiceFilter({ name: "route", emptyKey: "filters.all_routes" });
+setupChoiceFilter({ name: "incident", emptyKey: "filters.all_incidents" });
+setupChoiceFilter({ name: "status", emptyKey: "filters.all_statuses", labeler: statusLabel });
+setupDateFilter({ name: "from" });
+setupDateFilter({ name: "to" });
 
 loadFilters().then(loadReports);
 
 window.addEventListener("languagechange", () => {
+  Object.values(choiceFilters).forEach((filter) => filter.refreshLabel());
+  Object.values(dateFilters).forEach((filter) => filter.refreshLabel());
   loadFilters().then(loadReports);
 });
