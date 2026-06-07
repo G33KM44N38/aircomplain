@@ -1,27 +1,15 @@
 const { createServer } = require("node:http");
-const { execFile } = require("node:child_process");
-const { mkdir, readFile } = require("node:fs/promises");
+const { readFile } = require("node:fs/promises");
 const path = require("node:path");
 const { MongoClient } = require("mongodb");
-const { Pool } = require("pg");
 
 const root = __dirname;
-const dataDir = process.env.DATA_DIR || path.join(root, "data");
-const dbPath = path.join(dataDir, "air-observatoire.sqlite");
-const databaseUrl = process.env.DATABASE_URL || "";
 const mongoUri = process.env.MONGODB_URI || "";
 const mongoDbName = process.env.MONGODB_DB || "aircomplain";
 const port = Number(process.env.PORT || 4173);
 const adminToken = process.env.ADMIN_TOKEN || "";
-const dbDriver = mongoUri ? "mongodb" : databaseUrl ? "postgres" : "sqlite";
 const mongoClient = mongoUri ? new MongoClient(mongoUri) : null;
 let reportsCollection = null;
-const pgPool = databaseUrl
-  ? new Pool({
-      connectionString: databaseUrl,
-      ssl: process.env.DATABASE_SSL === "false" ? false : { rejectUnauthorized: false },
-    })
-  : null;
 
 const mimeTypes = {
   ".html": "text/html; charset=utf-8",
@@ -33,106 +21,32 @@ const mimeTypes = {
   ".webp": "image/webp",
 };
 
-function runSql(sql) {
-  return new Promise((resolve, reject) => {
-    execFile("sqlite3", [dbPath, sql], { maxBuffer: 1024 * 1024 }, (error, stdout, stderr) => {
-      if (error) {
-        reject(new Error(stderr || error.message));
-        return;
-      }
-      resolve(stdout.trim());
-    });
-  });
-}
-
-function sqliteValue(value) {
-  if (value === undefined || value === null || value === "") {
-    return "NULL";
-  }
-  return `'${String(value).replaceAll("'", "''")}'`;
-}
-
-function likeValue(value) {
-  return `%${String(value).replaceAll("'", "''").replaceAll("%", "\\%").replaceAll("_", "\\_")}%`;
-}
-
 function escapeRegex(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 async function initDb() {
-  if (dbDriver === "mongodb") {
-    await mongoClient.connect();
-    reportsCollection = mongoClient.db(mongoDbName).collection("reports");
-    await reportsCollection.createIndex({ route: 1, incident: 1, status: 1, flightDate: 1 });
-    await reportsCollection.createIndex({ createdAt: -1 });
-    await reportsCollection.deleteMany({
-      $or: [
-        {
-          message: {
-            $in: [
-              "Test de verification production avec un temoignage assez long pour valider lenregistrement cote serveur Render.",
-              "TEST_QA_AIRCOMPLAIN temoignage temporaire pour verifier le formulaire, les filtres publics et lanonymisation des coordonnees.",
-            ],
-          },
+  if (!mongoClient) {
+    throw new Error("MONGODB_URI is required.");
+  }
+
+  await mongoClient.connect();
+  reportsCollection = mongoClient.db(mongoDbName).collection("reports");
+  await reportsCollection.createIndex({ route: 1, incident: 1, status: 1, flightDate: 1 });
+  await reportsCollection.createIndex({ createdAt: -1 });
+  await reportsCollection.deleteMany({
+    $or: [
+      {
+        message: {
+          $in: [
+            "Test de verification production avec un temoignage assez long pour valider lenregistrement cote serveur Render.",
+            "TEST_QA_AIRCOMPLAIN temoignage temporaire pour verifier le formulaire, les filtres publics et lanonymisation des coordonnees.",
+          ],
         },
-        { message: /^TEST_QA_AIRCOMPLAIN/ },
-      ],
-    });
-    return;
-  }
-
-  if (dbDriver === "postgres") {
-    await pgPool.query(`
-      CREATE TABLE IF NOT EXISTS reports (
-        id BIGSERIAL PRIMARY KEY,
-        route TEXT NOT NULL,
-        incident TEXT NOT NULL,
-        flight_date DATE NOT NULL,
-        email TEXT,
-        phone TEXT,
-        message TEXT NOT NULL,
-        consent BOOLEAN NOT NULL,
-        status TEXT NOT NULL DEFAULT 'pending_review',
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      );
-    `);
-    await pgPool.query("CREATE INDEX IF NOT EXISTS reports_filters_idx ON reports (route, incident, status, flight_date);");
-    await pgPool.query("CREATE INDEX IF NOT EXISTS reports_created_at_idx ON reports (created_at DESC);");
-    await pgPool.query(`
-      DELETE FROM reports
-      WHERE message IN (
-        'Test de verification production avec un temoignage assez long pour valider lenregistrement cote serveur Render.',
-        'TEST_QA_AIRCOMPLAIN temoignage temporaire pour verifier le formulaire, les filtres publics et lanonymisation des coordonnees.'
-      )
-      OR message LIKE 'TEST_QA_AIRCOMPLAIN%';
-    `);
-    return;
-  }
-
-  await mkdir(dataDir, { recursive: true });
-  await runSql(`
-      CREATE TABLE IF NOT EXISTS reports (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        route TEXT NOT NULL,
-        incident TEXT NOT NULL,
-        flight_date TEXT NOT NULL,
-        email TEXT,
-        phone TEXT,
-        message TEXT NOT NULL,
-        consent INTEGER NOT NULL,
-        status TEXT NOT NULL DEFAULT 'pending_review',
-        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-  await runSql(`
-      DELETE FROM reports
-      WHERE message IN (
-        'Test de verification production avec un temoignage assez long pour valider lenregistrement cote serveur Render.',
-        'TEST_QA_AIRCOMPLAIN temoignage temporaire pour verifier le formulaire, les filtres publics et lanonymisation des coordonnees.'
-      )
-      OR message LIKE 'TEST_QA_AIRCOMPLAIN%';
-    `);
+      },
+      { message: /^TEST_QA_AIRCOMPLAIN/ },
+    ],
+  });
 }
 
 function sendJson(response, statusCode, payload) {
@@ -209,48 +123,18 @@ async function createReport(payload) {
     return report;
   }
 
-  if (dbDriver === "mongodb") {
-    const result = await reportsCollection.insertOne({
-      route: report.route,
-      incident: report.incident,
-      flightDate: report.flightDate,
-      email: report.email || null,
-      phone: report.phone || null,
-      message: report.message,
-      consent: true,
-      status: "pending_review",
-      createdAt: new Date(),
-    });
-    return { id: String(result.insertedId), status: "pending_review" };
-  }
-
-  if (dbDriver === "postgres") {
-    const result = await pgPool.query(
-      `
-        INSERT INTO reports (route, incident, flight_date, email, phone, message, consent)
-        VALUES ($1, $2, $3, NULLIF($4, ''), NULLIF($5, ''), $6, true)
-        RETURNING id;
-      `,
-      [report.route, report.incident, report.flightDate, report.email, report.phone, report.message],
-    );
-    return { id: Number(result.rows[0].id), status: "pending_review" };
-  }
-
-  const id = await runSql(`
-    INSERT INTO reports (route, incident, flight_date, email, phone, message, consent)
-    VALUES (
-      ${sqliteValue(report.route)},
-      ${sqliteValue(report.incident)},
-      ${sqliteValue(report.flightDate)},
-      ${sqliteValue(report.email)},
-      ${sqliteValue(report.phone)},
-      ${sqliteValue(report.message)},
-      1
-    )
-    RETURNING id;
-  `);
-
-  return { id: Number(id), status: "pending_review" };
+  const result = await reportsCollection.insertOne({
+    route: report.route,
+    incident: report.incident,
+    flightDate: report.flightDate,
+    email: report.email || null,
+    phone: report.phone || null,
+    message: report.message,
+    consent: true,
+    status: "pending_review",
+    createdAt: new Date(),
+  });
+  return { id: String(result.insertedId), status: "pending_review" };
 }
 
 function buildMongoFilters(filters, includePrivate) {
@@ -285,178 +169,32 @@ function buildMongoFilters(filters, includePrivate) {
   return query;
 }
 
-function buildPostgresFilters(filters, includePrivate) {
-  const conditions = [];
-  const values = [];
-  const addParam = (value) => {
-    values.push(value);
-    return `$${values.length}`;
-  };
-
-  if (filters.route) {
-    conditions.push(`route = ${addParam(filters.route)}`);
-  }
-  if (filters.incident) {
-    conditions.push(`incident = ${addParam(filters.incident)}`);
-  }
-  if (filters.status) {
-    conditions.push(`status = ${addParam(filters.status)}`);
-  }
-  if (filters.from) {
-    conditions.push(`flight_date >= ${addParam(filters.from)}`);
-  }
-  if (filters.to) {
-    conditions.push(`flight_date <= ${addParam(filters.to)}`);
-  }
-  if (filters.q) {
-    const query = addParam(likeValue(filters.q));
-    const privateSearch = includePrivate ? ` OR email ILIKE ${query} ESCAPE '\\' OR phone ILIKE ${query} ESCAPE '\\'` : "";
-    conditions.push(`(message ILIKE ${query} ESCAPE '\\'${privateSearch})`);
-  }
-
-  return { whereClause: conditions.length ? `WHERE ${conditions.join(" AND ")}` : "", values };
-}
-
-function buildSqliteFilters(filters, includePrivate) {
-  const conditions = [];
-
-  if (filters.route) {
-    conditions.push(`route = ${sqliteValue(filters.route)}`);
-  }
-  if (filters.incident) {
-    conditions.push(`incident = ${sqliteValue(filters.incident)}`);
-  }
-  if (filters.status) {
-    conditions.push(`status = ${sqliteValue(filters.status)}`);
-  }
-  if (filters.from) {
-    conditions.push(`flight_date >= ${sqliteValue(filters.from)}`);
-  }
-  if (filters.to) {
-    conditions.push(`flight_date <= ${sqliteValue(filters.to)}`);
-  }
-  if (filters.q) {
-    const query = sqliteValue(likeValue(filters.q));
-    const privateSearch = includePrivate ? ` OR email LIKE ${query} ESCAPE '\\' OR phone LIKE ${query} ESCAPE '\\'` : "";
-    conditions.push(`(message LIKE ${query} ESCAPE '\\'${privateSearch})`);
-  }
-
-  return conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
-}
-
 async function listReports(filters, options = {}) {
   const includePrivate = options.includePrivate === true;
-
-  if (dbDriver === "mongodb") {
-    const projection = includePrivate ? {} : { email: 0, phone: 0 };
-    const reports = await reportsCollection
-      .find(buildMongoFilters(filters, includePrivate), { projection })
-      .sort({ createdAt: -1, _id: -1 })
-      .limit(250)
-      .toArray();
-    return reports.map((report) => serializeMongoReport(report, includePrivate));
-  }
-
-  if (dbDriver === "postgres") {
-    const { whereClause, values } = buildPostgresFilters(filters, includePrivate);
-    const result = await pgPool.query(
-      `
-        SELECT
-          id,
-          route,
-          incident,
-          to_char(flight_date, 'YYYY-MM-DD') AS "flightDate",
-          ${includePrivate ? "email," : ""}
-          ${includePrivate ? "phone," : ""}
-          message,
-          consent,
-          status,
-          created_at AS "createdAt"
-        FROM reports
-        ${whereClause}
-        ORDER BY created_at DESC, id DESC
-        LIMIT 250;
-      `,
-      values,
-    );
-    return result.rows.map((row) => ({ ...row, id: Number(row.id) }));
-  }
-
-  const whereClause = buildSqliteFilters(filters, includePrivate);
-  const rows = await runSql(`
-    SELECT json_group_array(
-      json_object(
-        'id', id,
-        'route', route,
-        'incident', incident,
-        'flightDate', flight_date,
-        ${includePrivate ? "'email', email," : ""}
-        ${includePrivate ? "'phone', phone," : ""}
-        'message', message,
-        'consent', consent,
-        'status', status,
-        'createdAt', created_at
-      )
-    )
-    FROM (
-      SELECT *
-      FROM reports
-      ${whereClause}
-      ORDER BY created_at DESC, id DESC
-      LIMIT 250
-    );
-  `);
-
-  return JSON.parse(rows || "[]");
+  const projection = includePrivate ? {} : { email: 0, phone: 0 };
+  const reports = await reportsCollection
+    .find(buildMongoFilters(filters, includePrivate), { projection })
+    .sort({ createdAt: -1, _id: -1 })
+    .limit(250)
+    .toArray();
+  return reports.map((report) => serializeMongoReport(report, includePrivate));
 }
 
 async function getReportFilters() {
-  if (dbDriver === "mongodb") {
-    const [routes, incidents, statuses] = await Promise.all([
-      reportsCollection.distinct("route"),
-      reportsCollection.distinct("incident"),
-      reportsCollection.distinct("status"),
-    ]);
-    return {
-      routes: routes.sort(),
-      incidents: incidents.sort(),
-      statuses: statuses.sort(),
-    };
-  }
-
-  if (dbDriver === "postgres") {
-    const [routes, incidents, statuses] = await Promise.all([
-      pgPool.query("SELECT DISTINCT route FROM reports ORDER BY route;"),
-      pgPool.query("SELECT DISTINCT incident FROM reports ORDER BY incident;"),
-      pgPool.query("SELECT DISTINCT status FROM reports ORDER BY status;"),
-    ]);
-    return {
-      routes: routes.rows.map((row) => row.route),
-      incidents: incidents.rows.map((row) => row.incident),
-      statuses: statuses.rows.map((row) => row.status),
-    };
-  }
-
-  const rows = await runSql(`
-    SELECT json_object(
-      'routes', COALESCE((SELECT json_group_array(route) FROM (SELECT DISTINCT route FROM reports ORDER BY route)), json('[]')),
-      'incidents', COALESCE((SELECT json_group_array(incident) FROM (SELECT DISTINCT incident FROM reports ORDER BY incident)), json('[]')),
-      'statuses', COALESCE((SELECT json_group_array(status) FROM (SELECT DISTINCT status FROM reports ORDER BY status)), json('[]'))
-    );
-  `);
-
-  return JSON.parse(rows || '{"routes":[],"incidents":[],"statuses":[]}');
+  const [routes, incidents, statuses] = await Promise.all([
+    reportsCollection.distinct("route"),
+    reportsCollection.distinct("incident"),
+    reportsCollection.distinct("status"),
+  ]);
+  return {
+    routes: routes.sort(),
+    incidents: incidents.sort(),
+    statuses: statuses.sort(),
+  };
 }
 
 async function countReports() {
-  if (dbDriver === "mongodb") {
-    return reportsCollection.countDocuments();
-  }
-  if (dbDriver === "postgres") {
-    const result = await pgPool.query("SELECT COUNT(*) AS count FROM reports;");
-    return Number(result.rows[0].count);
-  }
-  return Number(await runSql("SELECT COUNT(*) FROM reports;"));
+  return reportsCollection.countDocuments();
 }
 
 async function serveStatic(request, response) {
@@ -493,7 +231,8 @@ async function handleRequest(request, response) {
       const payload = await readJsonBody(request);
       const result = await createReport(payload);
       sendJson(response, result.error ? 400 : 201, result);
-    } catch {
+    } catch (error) {
+      console.error("Report creation failed:", error);
       sendJson(response, 500, { error: "Erreur serveur pendant l'enregistrement." });
     }
     return;
@@ -514,7 +253,8 @@ async function handleRequest(request, response) {
         q: requestUrl.searchParams.get("q"),
       }, { includePrivate: true });
       sendJson(response, 200, { reports });
-    } catch {
+    } catch (error) {
+      console.error("Admin reports read failed:", error);
       sendJson(response, 500, { error: "Erreur serveur pendant la lecture des témoignages." });
     }
     return;
@@ -531,7 +271,8 @@ async function handleRequest(request, response) {
         q: requestUrl.searchParams.get("q"),
       });
       sendJson(response, 200, { reports });
-    } catch {
+    } catch (error) {
+      console.error("Public reports read failed:", error);
       sendJson(response, 500, { error: "Erreur serveur pendant la lecture des témoignages." });
     }
     return;
@@ -540,7 +281,8 @@ async function handleRequest(request, response) {
   if (request.method === "GET" && requestUrl.pathname === "/api/reports/filters") {
     try {
       sendJson(response, 200, await getReportFilters());
-    } catch {
+    } catch (error) {
+      console.error("Report filters read failed:", error);
       sendJson(response, 500, { error: "Erreur serveur pendant la lecture des filtres." });
     }
     return;
@@ -564,11 +306,7 @@ initDb()
   .then(() => {
     createServer(handleRequest).listen(port, () => {
       console.log(`Air Afrique Observatoire running on http://localhost:${port}`);
-      if (dbDriver === "mongodb") {
-        console.log(`Database: MongoDB (${mongoDbName})`);
-      } else {
-        console.log(dbDriver === "postgres" ? "Database: PostgreSQL" : `SQLite database: ${dbPath}`);
-      }
+      console.log(`Database: MongoDB (${mongoDbName})`);
     });
   })
   .catch((error) => {
