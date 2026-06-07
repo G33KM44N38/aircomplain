@@ -106,6 +106,13 @@ const storyList = document.querySelector("#stories");
 const form = document.querySelector("#report-form");
 const formStatus = document.querySelector("#form-status");
 const airportData = window.AirportData || { all: [], africa: [] };
+const flightDateInput = form.querySelector('[name="flightDate"]');
+const dateTrigger = document.querySelector("#flight-date-trigger");
+const dateLabel = document.querySelector("[data-date-label]");
+const datePicker = document.querySelector("#flight-date-picker");
+const dateMonthLabel = document.querySelector("[data-date-month]");
+const dateWeekdays = document.querySelector("[data-date-weekdays]");
+const dateGrid = document.querySelector("[data-date-grid]");
 
 function t(key, params) {
   return window.AppI18n?.t(key, params) || localTranslations.fr[key] || key;
@@ -163,6 +170,21 @@ function escapeHtml(value) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
+}
+
+function formatIsoDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function dateFromIso(value) {
+  if (!value) {
+    return null;
+  }
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year, month - 1, day);
 }
 
 function findAirports(airports, query) {
@@ -298,6 +320,128 @@ function setupAirportAutocomplete(inputName, panelId, airports) {
   closePanel();
 }
 
+function setupDatePicker() {
+  let visibleMonth = new Date();
+  visibleMonth.setDate(1);
+
+  function locale() {
+    return window.AppI18n?.language === "en" ? "en-US" : "fr-FR";
+  }
+
+  function closeDatePicker() {
+    datePicker.hidden = true;
+    dateTrigger.setAttribute("aria-expanded", "false");
+  }
+
+  function openDatePicker() {
+    datePicker.hidden = false;
+    dateTrigger.setAttribute("aria-expanded", "true");
+    renderDatePicker();
+  }
+
+  function updateDateLabel() {
+    const selected = dateFromIso(flightDateInput.value);
+    dateLabel.textContent = selected
+      ? new Intl.DateTimeFormat(locale(), { dateStyle: "medium" }).format(selected)
+      : t("form.date_placeholder");
+  }
+
+  function renderDatePicker() {
+    const selectedIso = flightDateInput.value;
+    const monthFormatter = new Intl.DateTimeFormat(locale(), { month: "long", year: "numeric" });
+    const weekdayFormatter = new Intl.DateTimeFormat(locale(), { weekday: "short" });
+    const firstDay = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth(), 1);
+    const firstWeekday = (firstDay.getDay() + 6) % 7;
+    const daysInMonth = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 0).getDate();
+    const todayIso = formatIsoDate(new Date());
+
+    dateMonthLabel.textContent = monthFormatter.format(visibleMonth);
+    dateWeekdays.innerHTML = Array.from({ length: 7 }, (_, index) => {
+      const monday = new Date(2026, 0, 5 + index);
+      return `<span>${weekdayFormatter.format(monday)}</span>`;
+    }).join("");
+
+    const cells = [];
+    for (let i = 0; i < firstWeekday; i += 1) {
+      cells.push('<span class="date-empty"></span>');
+    }
+    for (let day = 1; day <= daysInMonth; day += 1) {
+      const date = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth(), day);
+      const iso = formatIsoDate(date);
+      cells.push(`
+        <button
+          type="button"
+          class="date-day${iso === selectedIso ? " selected" : ""}${iso === todayIso ? " today" : ""}"
+          data-date-value="${iso}"
+          aria-pressed="${iso === selectedIso}"
+        >${day}</button>
+      `);
+    }
+    dateGrid.innerHTML = cells.join("");
+  }
+
+  dateTrigger.addEventListener("click", () => {
+    if (datePicker.hidden) {
+      const selected = dateFromIso(flightDateInput.value);
+      if (selected) {
+        visibleMonth = new Date(selected.getFullYear(), selected.getMonth(), 1);
+      }
+      openDatePicker();
+    } else {
+      closeDatePicker();
+    }
+  });
+
+  document.querySelector("[data-date-prev]").addEventListener("click", () => {
+    visibleMonth = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() - 1, 1);
+    renderDatePicker();
+  });
+
+  document.querySelector("[data-date-next]").addEventListener("click", () => {
+    visibleMonth = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 1);
+    renderDatePicker();
+  });
+
+  dateGrid.addEventListener("click", (event) => {
+    const day = event.target.closest("[data-date-value]");
+    if (!day) {
+      return;
+    }
+    flightDateInput.value = day.dataset.dateValue;
+    updateDateLabel();
+    closeDatePicker();
+  });
+
+  document.addEventListener("click", (event) => {
+    if (!datePicker.contains(event.target) && !dateTrigger.contains(event.target)) {
+      closeDatePicker();
+    }
+  });
+
+  dateTrigger.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      closeDatePicker();
+    }
+  });
+
+  form.addEventListener("reset", () => {
+    setTimeout(() => {
+      updateDateLabel();
+      visibleMonth = new Date();
+      visibleMonth.setDate(1);
+      renderDatePicker();
+    }, 0);
+  });
+
+  updateDateLabel();
+  renderDatePicker();
+
+  window.addEventListener("languagechange", () => {
+    updateDateLabel();
+    renderDatePicker();
+  });
+}
+
 tabs.forEach((tab) => {
   tab.addEventListener("click", () => {
     tabs.forEach((item) => item.classList.remove("active"));
@@ -308,6 +452,7 @@ tabs.forEach((tab) => {
 
 setupAirportAutocomplete("departureAirport", "departure-airport-results", airportData.all);
 setupAirportAutocomplete("arrivalAirport", "arrival-airport-results", airportData.africa);
+setupDatePicker();
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -322,6 +467,11 @@ form.addEventListener("submit", async (event) => {
 
   data.route = `${departureAirport} - ${arrivalAirport}`;
   form.querySelector('[name="route"]').value = data.route;
+
+  if (!data.flightDate) {
+    formStatus.textContent = t("form.need_date");
+    return;
+  }
 
   if (!data.email && !data.phone) {
     formStatus.textContent = t("form.need_contact");

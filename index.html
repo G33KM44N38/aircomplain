@@ -188,7 +188,20 @@
           </label>
           <label>
             <span data-i18n="form.flight_date">Date du vol</span>
-            <input type="date" name="flightDate" required />
+            <input type="hidden" name="flightDate" required />
+            <button class="date-trigger" type="button" id="flight-date-trigger" aria-expanded="false" aria-controls="flight-date-picker">
+              <span data-date-label data-i18n="form.date_placeholder">Choisir une date</span>
+              <span class="date-icon" aria-hidden="true">▾</span>
+            </button>
+            <div class="date-picker" id="flight-date-picker" hidden>
+              <div class="date-picker-header">
+                <button type="button" class="date-nav" data-date-prev aria-label="Mois précédent" data-i18n-aria-label="form.prev_month">‹</button>
+                <strong data-date-month></strong>
+                <button type="button" class="date-nav" data-date-next aria-label="Mois suivant" data-i18n-aria-label="form.next_month">›</button>
+              </div>
+              <div class="date-weekdays" data-date-weekdays></div>
+              <div class="date-grid" data-date-grid></div>
+            </div>
           </label>
           <div class="contact-grid">
             <label>
