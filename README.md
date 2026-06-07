@@ -42,14 +42,15 @@ La base embarquée contient les aéroports ouverts avec code IATA. Le champ de d
 
 La page publique des témoignages est disponible sur `http://localhost:4173/temoignages.html`.
 
-La page d'administration est disponible sur `http://localhost:4173/admin.html`.
-En production, ajoutez `?token=VALEUR_ADMIN_TOKEN` à l'URL si `ADMIN_TOKEN` est défini.
+La page d'administration est disponible sur `http://localhost:4173/admin-login.html`.
+L'accès utilise un mot de passe vérifié côté serveur avec `ADMIN_PASSWORD_HASH` et une session cookie `HttpOnly`.
 
 ## Configuration Render
 
 Le blueprint `render.yaml` attend:
 
-- `ADMIN_TOKEN`: généré automatiquement par Render.
+- `ADMIN_PASSWORD_HASH`: hash PBKDF2 du mot de passe administrateur.
+- `ADMIN_SESSION_SECRET`: généré automatiquement par Render.
 - `MONGODB_URI`: à renseigner dans Render avec l'URI MongoDB Atlas persistante.
 - `MONGODB_DB`: `aircomplain` par défaut.
 

@@ -6,7 +6,9 @@ services:
     buildCommand: npm install
     startCommand: npm start
     envVars:
-      - key: ADMIN_TOKEN
+      - key: ADMIN_PASSWORD_HASH
+        sync: false
+      - key: ADMIN_SESSION_SECRET
         generateValue: true
       - key: MONGODB_URI
         sync: false

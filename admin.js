@@ -3,6 +3,7 @@ const reportsList = document.querySelector("#reports-list");
 const adminStatus = document.querySelector("#admin-status");
 const reportCount = document.querySelector("#report-count");
 const resetButton = document.querySelector("#reset-filters");
+const logoutButtons = document.querySelectorAll("#admin-logout, #admin-mobile-logout");
 const choiceFilters = {};
 const dateFilters = {};
 
@@ -281,10 +282,6 @@ function setupDateFilter({ name }) {
 
 function buildQuery() {
   const params = new URLSearchParams();
-  const token = new URLSearchParams(window.location.search).get("token");
-  if (token) {
-    params.set("token", token);
-  }
   new FormData(filtersForm).forEach((value, key) => {
     const trimmed = String(value).trim();
     if (trimmed) {
@@ -292,10 +289,6 @@ function buildQuery() {
     }
   });
   return params;
-}
-
-function adminToken() {
-  return new URLSearchParams(window.location.search).get("token") || "";
 }
 
 function visibilityAction(report) {
@@ -374,18 +367,16 @@ function renderReports(reports) {
 
 async function updateReportVisibility(reportId, status) {
   adminStatus.textContent = t("status.updating");
-  const params = new URLSearchParams();
-  const token = adminToken();
-  if (token) {
-    params.set("token", token);
-  }
-
-  const response = await fetch(`/api/reports/${reportId}/status?${params.toString()}`, {
+  const response = await fetch(`/api/reports/${reportId}/status`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ status }),
   });
   const data = await response.json();
+  if (response.status === 401) {
+    window.location.href = "/admin-login.html";
+    return;
+  }
   if (!response.ok) {
     throw new Error(data.error || t("status.update_error"));
   }
@@ -406,6 +397,10 @@ async function loadReports() {
   try {
     const response = await fetch(`/api/reports?${buildQuery().toString()}`);
     const data = await response.json();
+    if (response.status === 401) {
+      window.location.href = "/admin-login.html";
+      return;
+    }
     if (!response.ok) {
       throw new Error(data.error || t("status.read_error"));
     }
@@ -443,6 +438,13 @@ reportsList.addEventListener("click", async (event) => {
     adminStatus.textContent = error.message;
     button.disabled = false;
   }
+});
+
+logoutButtons.forEach((button) => {
+  button.addEventListener("click", async () => {
+    await fetch("/api/admin/logout", { method: "POST" });
+    window.location.href = "/admin-login.html";
+  });
 });
 
 document.addEventListener("click", (event) => {

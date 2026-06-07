@@ -25,7 +25,8 @@ module.exports = defineConfig({
       PORT: "4210",
       MONGODB_URI: process.env.MONGODB_URI || "",
       MONGODB_DB: process.env.MONGODB_DB || "aircomplain",
-      ADMIN_TOKEN: "test-admin-token",
+      ADMIN_PASSWORD_HASH: "pbkdf2_sha256$210000$etoCnXa4sQbt3vaKxDgp1Q$flEuaSKF6HquI5Iem5dKCbCc7oMmNleZ3D0n1IWwGRc",
+      ADMIN_SESSION_SECRET: "test-admin-session-secret",
     },
   },
 });

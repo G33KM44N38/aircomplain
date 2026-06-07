@@ -1,7 +1,14 @@
 const { test, expect } = require("@playwright/test");
 const { MongoClient } = require("mongodb");
 
-const adminToken = "test-admin-token";
+const adminPassword = "test-admin-password";
+
+async function loginAsAdmin(page) {
+  await page.goto("/admin-login.html");
+  await page.locator("input[name='password']").fill(adminPassword);
+  await page.getByRole("button", { name: /se connecter|sign in/i }).click();
+  await expect(page).toHaveURL(/admin\.html$/);
+}
 
 test("homepage report form uses custom pickers and submits a complete route", async ({ page }) => {
   const consoleErrors = [];
@@ -108,7 +115,7 @@ test("admin filters use custom pickers", async ({ page }) => {
     });
   });
 
-  await page.goto(`/admin.html?token=${adminToken}`);
+  await loginAsAdmin(page);
 
   await expect(page.locator("#filters-form select")).toHaveCount(0);
   await expect(page.locator("#filters-form input[type='date']")).toHaveCount(0);
@@ -165,22 +172,24 @@ test("admin can publish and hide a received testimonial end to end", async ({ pa
     await page.locator("input[name='q']").fill(marker);
     await expect(page.locator("#reports-list")).not.toContainText(marker);
 
-    await page.goto(`/admin.html?token=${adminToken}`);
+    await loginAsAdmin(page);
     await page.locator("input[name='q']").fill(marker);
-    await expect(page.locator("#reports-list")).toContainText(marker);
-    await expect(page.locator("#reports-list")).toContainText(/À vérifier|To review/);
+    const adminReport = page.locator(".report-item", { hasText: marker });
+    await expect(adminReport).toContainText(marker);
+    await expect(adminReport).toContainText(/À vérifier|To review/);
 
-    await page.getByRole("button", { name: /Afficher publiquement|Show publicly/i }).click();
-    await expect(page.locator("#reports-list")).toContainText(/Publié|Published/);
+    await adminReport.getByRole("button", { name: /Afficher publiquement|Show publicly/i }).click();
+    await expect(adminReport).toContainText(/Publié|Published/);
 
     await page.goto("/temoignages.html");
     await page.locator("input[name='q']").fill(marker);
     await expect(page.locator("#reports-list")).toContainText(marker);
 
-    await page.goto(`/admin.html?token=${adminToken}`);
+    await page.goto("/admin.html");
     await page.locator("input[name='q']").fill(marker);
-    await page.getByRole("button", { name: /Masquer du public|Hide from public/i }).click();
-    await expect(page.locator("#reports-list")).toContainText(/À vérifier|Masqué|Hidden|To review/);
+    const publishedAdminReport = page.locator(".report-item", { hasText: marker });
+    await publishedAdminReport.getByRole("button", { name: /Masquer du public|Hide from public/i }).click();
+    await expect(publishedAdminReport).toContainText(/Masqué|Hidden/);
 
     await page.goto("/temoignages.html");
     await page.locator("input[name='q']").fill(marker);

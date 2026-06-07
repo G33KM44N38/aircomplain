@@ -54,7 +54,8 @@
   - [ ] Render API key.
   - [ ] Mot de passe utilisateur MongoDB `aircomplain`.
   - [ ] `MONGODB_URI` sur Render.
-  - [ ] `ADMIN_TOKEN` sur Render.
+  - [ ] `ADMIN_PASSWORD_HASH` sur Render.
+  - [ ] `ADMIN_SESSION_SECRET` sur Render.
 
 - [ ] Notifications email admin.
   - [ ] Email envoyé quand un nouveau témoignage arrive.

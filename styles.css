@@ -86,6 +86,22 @@ a {
   color: var(--green-dark);
 }
 
+.nav-button,
+.mobile-menu-button {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.94rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.nav-button:hover,
+.mobile-menu-button:hover {
+  color: var(--green-dark);
+}
+
 .language-switch {
   display: inline-flex;
   align-items: center;
@@ -186,7 +202,23 @@ a {
   font-weight: 900;
 }
 
+.mobile-menu-button {
+  display: flex;
+  width: 100%;
+  min-height: 48px;
+  align-items: center;
+  border-radius: 6px;
+  padding: 12px 14px;
+  color: var(--green-dark);
+  text-align: left;
+  font-weight: 900;
+}
+
 .mobile-menu a:hover {
+  background: var(--sky);
+}
+
+.mobile-menu-button:hover {
   background: var(--sky);
 }
 
@@ -887,6 +919,38 @@ textarea {
   width: min(1180px, calc(100% - 36px));
   margin: 0 auto;
   padding: clamp(36px, 6vw, 72px) 0;
+}
+
+.login-shell {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 24px;
+}
+
+.login-panel {
+  display: grid;
+  gap: 24px;
+  width: min(100%, 520px);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--white);
+  box-shadow: var(--shadow);
+  padding: clamp(24px, 5vw, 42px);
+}
+
+.login-panel h1 {
+  color: var(--green-dark);
+  font-size: clamp(2.4rem, 6vw, 4.2rem);
+}
+
+.login-panel p:not(.eyebrow) {
+  color: var(--muted);
+}
+
+.login-form {
+  display: grid;
+  gap: 16px;
 }
 
 .admin-hero {

@@ -1,5 +1,6 @@
 const { createServer } = require("node:http");
 const { readFile } = require("node:fs/promises");
+const crypto = require("node:crypto");
 const path = require("node:path");
 const { MongoClient, ObjectId } = require("mongodb");
 
@@ -7,9 +8,12 @@ const root = __dirname;
 const mongoUri = process.env.MONGODB_URI || "";
 const mongoDbName = process.env.MONGODB_DB || "aircomplain";
 const port = Number(process.env.PORT || 4173);
-const adminToken = process.env.ADMIN_TOKEN || "";
+const adminPasswordHash = process.env.ADMIN_PASSWORD_HASH || "";
+const adminSessionSecret = process.env.ADMIN_SESSION_SECRET || "development-admin-session-secret";
 const mongoClient = mongoUri ? new MongoClient(mongoUri) : null;
+const adminSessions = new Map();
 let reportsCollection = null;
+const adminSessionTtlMs = 1000 * 60 * 60 * 8;
 
 const mimeTypes = {
   ".html": "text/html; charset=utf-8",
@@ -54,11 +58,90 @@ function sendJson(response, statusCode, payload) {
   response.end(JSON.stringify(payload));
 }
 
-function isAuthorizedAdmin(requestUrl) {
-  if (!adminToken) {
-    return true;
+function timingSafeEqualText(a, b) {
+  const left = Buffer.from(String(a));
+  const right = Buffer.from(String(b));
+  if (left.length !== right.length) {
+    return false;
   }
-  return requestUrl.searchParams.get("token") === adminToken;
+  return crypto.timingSafeEqual(left, right);
+}
+
+function verifyPassword(password, storedHash) {
+  const [algorithm, iterationsValue, salt, expectedHash] = String(storedHash).split("$");
+  if (algorithm !== "pbkdf2_sha256" || !iterationsValue || !salt || !expectedHash) {
+    return false;
+  }
+  const iterations = Number(iterationsValue);
+  if (!Number.isInteger(iterations) || iterations < 100000) {
+    return false;
+  }
+  const actualHash = crypto.pbkdf2Sync(String(password), salt, iterations, 32, "sha256").toString("base64url");
+  return timingSafeEqualText(actualHash, expectedHash);
+}
+
+function parseCookies(request) {
+  return Object.fromEntries(
+    String(request.headers.cookie || "")
+      .split(";")
+      .map((cookie) => cookie.trim())
+      .filter(Boolean)
+      .map((cookie) => {
+        const index = cookie.indexOf("=");
+        return [decodeURIComponent(cookie.slice(0, index)), decodeURIComponent(cookie.slice(index + 1))];
+      }),
+  );
+}
+
+function signSessionId(sessionId) {
+  return crypto.createHmac("sha256", adminSessionSecret).update(sessionId).digest("base64url");
+}
+
+function createSessionCookie(request) {
+  const sessionId = crypto.randomBytes(32).toString("base64url");
+  adminSessions.set(sessionId, Date.now() + adminSessionTtlMs);
+  const secure = request.headers["x-forwarded-proto"] === "https";
+  return {
+    sessionId,
+    cookie: [
+      `admin_session=${encodeURIComponent(`${sessionId}.${signSessionId(sessionId)}`)}`,
+      "Path=/",
+      "HttpOnly",
+      "SameSite=Lax",
+      secure ? "Secure" : "",
+      `Max-Age=${Math.floor(adminSessionTtlMs / 1000)}`,
+    ].filter(Boolean).join("; "),
+  };
+}
+
+function clearSessionCookie() {
+  return "admin_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0";
+}
+
+function getAdminSessionId(request) {
+  const value = parseCookies(request).admin_session;
+  if (!value) {
+    return "";
+  }
+  const [sessionId, signature] = value.split(".");
+  if (!sessionId || !signature || !timingSafeEqualText(signature, signSessionId(sessionId))) {
+    return "";
+  }
+  const expiresAt = adminSessions.get(sessionId);
+  if (!expiresAt || expiresAt < Date.now()) {
+    adminSessions.delete(sessionId);
+    return "";
+  }
+  return sessionId;
+}
+
+function isAuthorizedAdmin(request) {
+  return Boolean(getAdminSessionId(request));
+}
+
+function redirect(response, location) {
+  response.writeHead(302, { Location: location });
+  response.end();
 }
 
 async function readJsonBody(request) {
@@ -222,9 +305,8 @@ async function countReports() {
 async function serveStatic(request, response) {
   const requestUrl = new URL(request.url, `http://${request.headers.host}`);
   const pathname = requestUrl.pathname === "/" ? "/index.html" : requestUrl.pathname;
-  if (pathname === "/admin.html" && !isAuthorizedAdmin(requestUrl)) {
-    response.writeHead(401, { "Content-Type": "text/plain; charset=utf-8" });
-    response.end("Acces administration non autorise.");
+  if (pathname === "/admin.html" && !isAuthorizedAdmin(request)) {
+    redirect(response, "/admin-login.html");
     return;
   }
   const filePath = path.normalize(path.join(root, pathname));
@@ -248,6 +330,45 @@ async function serveStatic(request, response) {
 async function handleRequest(request, response) {
   const requestUrl = new URL(request.url, `http://${request.headers.host}`);
 
+  if (request.method === "GET" && requestUrl.pathname === "/api/admin/session") {
+    sendJson(response, 200, { authenticated: isAuthorizedAdmin(request) });
+    return;
+  }
+
+  if (request.method === "POST" && requestUrl.pathname === "/api/admin/login") {
+    try {
+      const payload = await readJsonBody(request);
+      const password = String(payload.password || "");
+      if (!adminPasswordHash || !verifyPassword(password, adminPasswordHash)) {
+        sendJson(response, 401, { error: "Mot de passe administrateur invalide." });
+        return;
+      }
+      const session = createSessionCookie(request);
+      response.writeHead(200, {
+        "Content-Type": "application/json; charset=utf-8",
+        "Set-Cookie": session.cookie,
+      });
+      response.end(JSON.stringify({ authenticated: true }));
+    } catch (error) {
+      console.error("Admin login failed:", error);
+      sendJson(response, 500, { error: "Erreur serveur pendant la connexion." });
+    }
+    return;
+  }
+
+  if (request.method === "POST" && requestUrl.pathname === "/api/admin/logout") {
+    const sessionId = getAdminSessionId(request);
+    if (sessionId) {
+      adminSessions.delete(sessionId);
+    }
+    response.writeHead(200, {
+      "Content-Type": "application/json; charset=utf-8",
+      "Set-Cookie": clearSessionCookie(),
+    });
+    response.end(JSON.stringify({ authenticated: false }));
+    return;
+  }
+
   if (request.method === "POST" && request.url === "/api/reports") {
     try {
       const payload = await readJsonBody(request);
@@ -261,7 +382,7 @@ async function handleRequest(request, response) {
   }
 
   if (request.method === "GET" && requestUrl.pathname === "/api/reports") {
-    if (!isAuthorizedAdmin(requestUrl)) {
+    if (!isAuthorizedAdmin(request)) {
       sendJson(response, 401, { error: "Acces administration non autorise." });
       return;
     }
@@ -302,7 +423,7 @@ async function handleRequest(request, response) {
 
   const statusMatch = requestUrl.pathname.match(/^\/api\/reports\/([a-f\d]{24})\/status$/i);
   if (request.method === "PATCH" && statusMatch) {
-    if (!isAuthorizedAdmin(requestUrl)) {
+    if (!isAuthorizedAdmin(request)) {
       sendJson(response, 401, { error: "Acces administration non autorise." });
       return;
     }

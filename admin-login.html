@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title data-i18n-title="admin.login_title">Connexion administration - Air Afrique Observatoire</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,650;9..144,760&family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="admin-body">
+    <main class="login-shell">
+      <section class="login-panel" aria-labelledby="login-title">
+        <a class="brand" href="index.html" aria-label="Retour au site public" data-i18n-aria-label="aria.back_public">
+          <span class="brand-mark">AO</span>
+          <span>Air Afrique Observatoire</span>
+        </a>
+        <div>
+          <p class="eyebrow" data-i18n="admin.eyebrow">Administration</p>
+          <h1 id="login-title" data-i18n="admin.login_heading">Connexion admin</h1>
+          <p data-i18n="admin.login_copy">Accédez au tableau de suivi des témoignages avec votre mot de passe administrateur.</p>
+        </div>
+        <form class="login-form" id="admin-login-form">
+          <label>
+            <span data-i18n="admin.password">Mot de passe</span>
+            <input type="password" name="password" autocomplete="current-password" required />
+          </label>
+          <button class="button primary full" type="submit" data-i18n="admin.login_submit">Se connecter</button>
+          <p class="form-status" id="login-status" role="status"></p>
+        </form>
+      </section>
+    </main>
+
+    <script src="i18n.js"></script>
+    <script src="admin-login.js"></script>
+  </body>
+</html>
