@@ -2,12 +2,6 @@
 
 ## Priorité 1 - Avant exposition publique large
 
-- [ ] Rotater tous les secrets exposés pendant le développement.
-  - [ ] Render API key.
-  - [ ] Mot de passe utilisateur MongoDB `aircomplain`.
-  - [ ] `MONGODB_URI` sur Render.
-  - [ ] `ADMIN_TOKEN` sur Render.
-
 - [ ] Remplacer l'accès admin par un vrai login.
   - [ ] Page de connexion admin.
   - [ ] Mot de passe hashé côté serveur.
@@ -55,6 +49,12 @@
   - [ ] Liste publique limitée aux témoignages publiés.
 
 ## Priorité 3 - Fin de MVP
+
+- [ ] Rotater tous les secrets exposés pendant le développement.
+  - [ ] Render API key.
+  - [ ] Mot de passe utilisateur MongoDB `aircomplain`.
+  - [ ] `MONGODB_URI` sur Render.
+  - [ ] `ADMIN_TOKEN` sur Render.
 
 - [ ] Notifications email admin.
   - [ ] Email envoyé quand un nouveau témoignage arrive.
