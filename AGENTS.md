@@ -1,0 +1,3 @@
+- I'm obsessed, with end to end typesafety 
+- everything that you do you have to prove me  that this is done
+- I like deep module, to create once use it everywhere, and then maintain it easily
