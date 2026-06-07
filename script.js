@@ -113,6 +113,10 @@ const datePicker = document.querySelector("#flight-date-picker");
 const dateMonthLabel = document.querySelector("[data-date-month]");
 const dateWeekdays = document.querySelector("[data-date-weekdays]");
 const dateGrid = document.querySelector("[data-date-grid]");
+const incidentInput = form.querySelector('[name="incident"]');
+const incidentTrigger = document.querySelector("#incident-trigger");
+const incidentLabel = document.querySelector("[data-incident-label]");
+const incidentPicker = document.querySelector("#incident-picker");
 
 function t(key, params) {
   return window.AppI18n?.t(key, params) || localTranslations.fr[key] || key;
@@ -442,6 +446,100 @@ function setupDatePicker() {
   });
 }
 
+function setupIncidentPicker() {
+  const options = Array.from(document.querySelectorAll(".incident-option"));
+  let activeIndex = -1;
+
+  function closeIncidentPicker() {
+    incidentPicker.hidden = true;
+    incidentTrigger.setAttribute("aria-expanded", "false");
+  }
+
+  function openIncidentPicker() {
+    incidentPicker.hidden = false;
+    incidentTrigger.setAttribute("aria-expanded", "true");
+  }
+
+  function updateActiveOption() {
+    options.forEach((option, index) => {
+      option.classList.toggle("active", index === activeIndex);
+      option.setAttribute("aria-selected", String(index === activeIndex));
+    });
+  }
+
+  function selectIncident(option) {
+    incidentInput.value = option.dataset.incidentValue;
+    incidentInput.dataset.i18nValue = option.dataset.i18nValue;
+    incidentLabel.textContent = t(option.dataset.i18nValue);
+    options.forEach((item) => item.classList.toggle("selected", item === option));
+    closeIncidentPicker();
+  }
+
+  incidentTrigger.addEventListener("click", () => {
+    if (incidentPicker.hidden) {
+      openIncidentPicker();
+    } else {
+      closeIncidentPicker();
+    }
+  });
+
+  incidentTrigger.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      closeIncidentPicker();
+      return;
+    }
+    if (event.key !== "ArrowDown" && event.key !== "ArrowUp" && event.key !== "Enter") {
+      return;
+    }
+    event.preventDefault();
+    if (incidentPicker.hidden) {
+      openIncidentPicker();
+    }
+    if (event.key === "ArrowDown") {
+      activeIndex = Math.min(activeIndex + 1, options.length - 1);
+      updateActiveOption();
+    }
+    if (event.key === "ArrowUp") {
+      activeIndex = Math.max(activeIndex - 1, 0);
+      updateActiveOption();
+    }
+    if (event.key === "Enter" && activeIndex >= 0) {
+      selectIncident(options[activeIndex]);
+    }
+  });
+
+  options.forEach((option, index) => {
+    option.addEventListener("click", () => {
+      activeIndex = index;
+      updateActiveOption();
+      selectIncident(option);
+    });
+  });
+
+  document.addEventListener("click", (event) => {
+    if (!incidentPicker.contains(event.target) && !incidentTrigger.contains(event.target)) {
+      closeIncidentPicker();
+    }
+  });
+
+  form.addEventListener("reset", () => {
+    setTimeout(() => {
+      incidentInput.value = "";
+      delete incidentInput.dataset.i18nValue;
+      incidentLabel.textContent = t("form.incident_placeholder");
+      activeIndex = -1;
+      options.forEach((option) => option.classList.remove("active", "selected"));
+      updateActiveOption();
+    }, 0);
+  });
+
+  window.addEventListener("languagechange", () => {
+    incidentLabel.textContent = incidentInput.dataset.i18nValue ? t(incidentInput.dataset.i18nValue) : t("form.incident_placeholder");
+  });
+
+  updateActiveOption();
+}
+
 tabs.forEach((tab) => {
   tab.addEventListener("click", () => {
     tabs.forEach((item) => item.classList.remove("active"));
@@ -453,6 +551,7 @@ tabs.forEach((tab) => {
 setupAirportAutocomplete("departureAirport", "departure-airport-results", airportData.all);
 setupAirportAutocomplete("arrivalAirport", "arrival-airport-results", airportData.africa);
 setupDatePicker();
+setupIncidentPicker();
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -470,6 +569,11 @@ form.addEventListener("submit", async (event) => {
 
   if (!data.flightDate) {
     formStatus.textContent = t("form.need_date");
+    return;
+  }
+
+  if (!data.incident) {
+    formStatus.textContent = t("form.incident_placeholder");
     return;
   }
 

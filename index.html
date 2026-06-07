@@ -177,14 +177,33 @@
           </div>
           <label>
             <span data-i18n="form.incident">Type d'incident</span>
-            <select name="incident" required>
-              <option value="" data-i18n="form.incident_placeholder">Choisir une catégorie</option>
-              <option data-i18n="incident.delay">Retard important</option>
-              <option data-i18n="incident.cancel">Annulation</option>
-              <option data-i18n="incident.baggage">Bagage perdu ou retardé</option>
-              <option data-i18n="incident.communication">Communication insuffisante</option>
-              <option data-i18n="incident.assistance">Accueil ou assistance</option>
-            </select>
+            <input type="hidden" name="incident" required />
+            <button class="incident-trigger" type="button" id="incident-trigger" aria-expanded="false" aria-controls="incident-picker">
+              <span data-incident-label data-i18n="form.incident_placeholder">Choisir une catégorie</span>
+              <span class="picker-icon" aria-hidden="true">▾</span>
+            </button>
+            <div class="incident-picker" id="incident-picker" hidden role="listbox" aria-label="Type d'incident" data-i18n-aria-label="form.incident">
+              <button type="button" class="incident-option" role="option" data-incident-value="Retard important" data-i18n-value="incident.delay">
+                <strong data-i18n="incident.delay">Retard important</strong>
+                <span data-i18n="incident.delay_hint">Vol parti ou arrivé avec un retard significatif.</span>
+              </button>
+              <button type="button" class="incident-option" role="option" data-incident-value="Annulation" data-i18n-value="incident.cancel">
+                <strong data-i18n="incident.cancel">Annulation</strong>
+                <span data-i18n="incident.cancel_hint">Vol annulé, reporté ou remplacé dans des conditions insuffisantes.</span>
+              </button>
+              <button type="button" class="incident-option" role="option" data-incident-value="Bagage perdu ou retardé" data-i18n-value="incident.baggage">
+                <strong data-i18n="incident.baggage">Bagage perdu ou retardé</strong>
+                <span data-i18n="incident.baggage_hint">Bagage manquant, livré tardivement ou suivi insuffisant.</span>
+              </button>
+              <button type="button" class="incident-option" role="option" data-incident-value="Communication insuffisante" data-i18n-value="incident.communication">
+                <strong data-i18n="incident.communication">Communication insuffisante</strong>
+                <span data-i18n="incident.communication_hint">Information tardive, contradictoire ou absente pendant l'incident.</span>
+              </button>
+              <button type="button" class="incident-option" role="option" data-incident-value="Accueil ou assistance" data-i18n-value="incident.assistance">
+                <strong data-i18n="incident.assistance">Accueil ou assistance</strong>
+                <span data-i18n="incident.assistance_hint">Prise en charge, accessibilité, assistance ou traitement au comptoir.</span>
+              </button>
+            </div>
           </label>
           <label>
             <span data-i18n="form.flight_date">Date du vol</span>
