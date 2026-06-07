@@ -105,6 +105,7 @@ const tabs = document.querySelectorAll(".tab");
 const storyList = document.querySelector("#stories");
 const form = document.querySelector("#report-form");
 const formStatus = document.querySelector("#form-status");
+const airportData = window.AirportData || { all: [], africa: [] };
 
 function t(key, params) {
   return window.AppI18n?.t(key, params) || localTranslations.fr[key] || key;
@@ -147,6 +148,156 @@ function renderStories() {
     .join("");
 }
 
+function normalizeSearch(value) {
+  return String(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function findAirports(airports, query) {
+  const terms = normalizeSearch(query).split(/\s+/).filter(Boolean);
+  if (!terms.length) {
+    return airports.slice(0, 8);
+  }
+
+  return airports
+    .map((airport) => {
+      const search = normalizeSearch(airport.search || airport.display);
+      if (!terms.every((term) => search.includes(term))) {
+        return null;
+      }
+      const codeMatch = terms.some((term) => airport.code.toLowerCase() === term);
+      const startsWithCode = terms.some((term) => airport.code.toLowerCase().startsWith(term));
+      const startsWithCity = airport.city && normalizeSearch(airport.city).startsWith(terms[0]);
+      const score = Number(codeMatch) * 30 + Number(startsWithCode) * 20 + Number(startsWithCity) * 10;
+      return { airport, score };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.score - a.score || a.airport.display.localeCompare(b.airport.display))
+    .slice(0, 8)
+    .map((result) => result.airport);
+}
+
+function setupAirportAutocomplete(inputName, panelId, airports) {
+  const input = form.querySelector(`[name="${inputName}"]`);
+  const panel = document.querySelector(`#${panelId}`);
+  let activeIndex = -1;
+  let matches = [];
+
+  function closePanel() {
+    activeIndex = -1;
+    panel.hidden = true;
+    panel.innerHTML = "";
+    input.setAttribute("aria-expanded", "false");
+    input.removeAttribute("aria-activedescendant");
+  }
+
+  function selectAirport(airport) {
+    input.value = airport.label;
+    input.dataset.airportCode = airport.code;
+    closePanel();
+  }
+
+  function renderPanel() {
+    matches = findAirports(airports, input.value);
+    if (!matches.length) {
+      closePanel();
+      return;
+    }
+
+    panel.hidden = false;
+    input.setAttribute("aria-expanded", "true");
+    panel.innerHTML = matches
+      .map(
+        (airport, index) => `
+          <button
+            class="autocomplete-option${index === activeIndex ? " active" : ""}"
+            id="${panelId}-option-${index}"
+            type="button"
+            role="option"
+            aria-selected="${index === activeIndex}"
+            data-index="${index}"
+          >
+            <strong>${escapeHtml(airport.code)}</strong>
+            <span>${escapeHtml(airport.display)}</span>
+          </button>
+        `,
+      )
+      .join("");
+
+    if (activeIndex >= 0) {
+      input.setAttribute("aria-activedescendant", `${panelId}-option-${activeIndex}`);
+    } else {
+      input.removeAttribute("aria-activedescendant");
+    }
+  }
+
+  input.addEventListener("input", () => {
+    delete input.dataset.airportCode;
+    activeIndex = -1;
+    renderPanel();
+  });
+
+  input.addEventListener("focus", () => {
+    renderPanel();
+  });
+
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      closePanel();
+      return;
+    }
+    if (event.key !== "ArrowDown" && event.key !== "ArrowUp" && event.key !== "Enter") {
+      return;
+    }
+    if (panel.hidden) {
+      renderPanel();
+    }
+    if (!matches.length) {
+      return;
+    }
+    event.preventDefault();
+    if (event.key === "ArrowDown") {
+      activeIndex = Math.min(activeIndex + 1, matches.length - 1);
+      renderPanel();
+    }
+    if (event.key === "ArrowUp") {
+      activeIndex = Math.max(activeIndex - 1, 0);
+      renderPanel();
+    }
+    if (event.key === "Enter" && activeIndex >= 0) {
+      selectAirport(matches[activeIndex]);
+    }
+  });
+
+  panel.addEventListener("click", (event) => {
+    const option = event.target.closest(".autocomplete-option");
+    if (!option) {
+      return;
+    }
+    selectAirport(matches[Number(option.dataset.index)]);
+  });
+
+  document.addEventListener("click", (event) => {
+    if (!input.contains(event.target) && !panel.contains(event.target)) {
+      closePanel();
+    }
+  });
+
+  closePanel();
+}
+
 tabs.forEach((tab) => {
   tab.addEventListener("click", () => {
     tabs.forEach((item) => item.classList.remove("active"));
@@ -154,6 +305,9 @@ tabs.forEach((tab) => {
     renderMetrics(tab.dataset.route);
   });
 });
+
+setupAirportAutocomplete("departureAirport", "departure-airport-results", airportData.all);
+setupAirportAutocomplete("arrivalAirport", "arrival-airport-results", airportData.africa);
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();

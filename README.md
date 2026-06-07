@@ -32,6 +32,14 @@ MONGODB_DB="aircomplain"
 
 La collection utilisée est `reports`. Les index sont créés automatiquement au démarrage.
 
+## Autocomplétion des aéroports
+
+Le fichier `airport-data.js` est généré depuis le CSV public OurAirports:
+
+`https://davidmegginson.github.io/ourairports-data/airports.csv`
+
+La base embarquée contient les aéroports ouverts avec code IATA. Le champ de départ cherche dans tous les aéroports disponibles, et le champ d'arrivée est filtré sur les aéroports du continent africain.
+
 La page publique des témoignages est disponible sur `http://localhost:4173/temoignages.html`.
 
 La page d'administration est disponible sur `http://localhost:4173/admin.html`.
