@@ -105,7 +105,9 @@ const translations = {
     "public.results": "Résultats",
     "status.loading": "Chargement...",
     "status.updated": "Liste à jour",
+    "status.updating": "Mise à jour...",
     "status.read_error": "Lecture impossible.",
+    "status.update_error": "Mise à jour impossible.",
     "empty.public_title": "Aucun témoignage trouvé",
     "empty.public_text": "Modifiez les filtres ou déposez le premier témoignage pour alimenter l'observatoire.",
     "empty.admin_text": "Modifiez les filtres ou ajoutez un nouveau signalement depuis le site public.",
@@ -123,6 +125,8 @@ const translations = {
     "admin.copy": "Consultez les signalements enregistrés en base, filtrez par trajet, date, incident ou mot-clé, puis préparez la vérification.",
     "admin.summary": "Total affiché",
     "admin.testimonials": "Témoignages",
+    "admin.show_public": "Afficher publiquement",
+    "admin.hide_public": "Masquer du public",
   },
   en: {
     "nav.home": "Home",
@@ -227,7 +231,9 @@ const translations = {
     "public.results": "Results",
     "status.loading": "Loading...",
     "status.updated": "List updated",
+    "status.updating": "Updating...",
     "status.read_error": "Unable to read data.",
+    "status.update_error": "Unable to update.",
     "empty.public_title": "No testimonial found",
     "empty.public_text": "Change the filters or submit the first testimonial to feed the observatory.",
     "empty.admin_text": "Change the filters or add a new report from the public site.",
@@ -245,6 +251,8 @@ const translations = {
     "admin.copy": "Review reports stored in the database, filter by route, date, incident, or keyword, then prepare verification.",
     "admin.summary": "Total shown",
     "admin.testimonials": "Testimonials",
+    "admin.show_public": "Show publicly",
+    "admin.hide_public": "Hide from public",
   },
 };
 

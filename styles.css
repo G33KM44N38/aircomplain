@@ -1049,6 +1049,18 @@ textarea {
   font-weight: 800;
 }
 
+.report-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.report-visibility-action {
+  padding: 10px 12px;
+  white-space: nowrap;
+}
+
 .empty-state {
   padding: 28px;
   text-align: center;

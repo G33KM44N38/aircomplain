@@ -1,7 +1,7 @@
 const { createServer } = require("node:http");
 const { readFile } = require("node:fs/promises");
 const path = require("node:path");
-const { MongoClient } = require("mongodb");
+const { MongoClient, ObjectId } = require("mongodb");
 
 const root = __dirname;
 const mongoUri = process.env.MONGODB_URI || "";
@@ -137,6 +137,28 @@ async function createReport(payload) {
   return { id: String(result.insertedId), status: "pending_review" };
 }
 
+async function updateReportStatus(reportId, status) {
+  const allowedStatuses = new Set(["pending_review", "published", "hidden", "rejected"]);
+  if (!ObjectId.isValid(reportId)) {
+    return { error: "Identifiant de témoignage invalide." };
+  }
+  if (!allowedStatuses.has(status)) {
+    return { error: "Statut invalide." };
+  }
+
+  const result = await reportsCollection.findOneAndUpdate(
+    { _id: new ObjectId(reportId) },
+    { $set: { status, updatedAt: new Date() } },
+    { returnDocument: "after" },
+  );
+
+  if (!result) {
+    return { error: "Témoignage introuvable." };
+  }
+
+  return serializeMongoReport(result, true);
+}
+
 function buildMongoFilters(filters, includePrivate) {
   const query = {};
 
@@ -265,7 +287,7 @@ async function handleRequest(request, response) {
       const reports = await listReports({
         route: requestUrl.searchParams.get("route"),
         incident: requestUrl.searchParams.get("incident"),
-        status: "pending_review",
+        status: "published",
         from: requestUrl.searchParams.get("from"),
         to: requestUrl.searchParams.get("to"),
         q: requestUrl.searchParams.get("q"),
@@ -274,6 +296,23 @@ async function handleRequest(request, response) {
     } catch (error) {
       console.error("Public reports read failed:", error);
       sendJson(response, 500, { error: "Erreur serveur pendant la lecture des témoignages." });
+    }
+    return;
+  }
+
+  const statusMatch = requestUrl.pathname.match(/^\/api\/reports\/([a-f\d]{24})\/status$/i);
+  if (request.method === "PATCH" && statusMatch) {
+    if (!isAuthorizedAdmin(requestUrl)) {
+      sendJson(response, 401, { error: "Acces administration non autorise." });
+      return;
+    }
+    try {
+      const payload = await readJsonBody(request);
+      const result = await updateReportStatus(statusMatch[1], String(payload.status || "").trim());
+      sendJson(response, result.error ? 400 : 200, result.error ? result : { report: result });
+    } catch (error) {
+      console.error("Report status update failed:", error);
+      sendJson(response, 500, { error: "Erreur serveur pendant la mise à jour du statut." });
     }
     return;
   }

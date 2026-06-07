@@ -10,12 +10,14 @@ const statusLabels = {
   fr: {
     pending_review: "À vérifier",
     verified: "Vérifié",
+    hidden: "Masqué",
     rejected: "Rejeté",
     published: "Publié",
   },
   en: {
     pending_review: "To review",
     verified: "Verified",
+    hidden: "Hidden",
     rejected: "Rejected",
     published: "Published",
   },
@@ -292,6 +294,23 @@ function buildQuery() {
   return params;
 }
 
+function adminToken() {
+  return new URLSearchParams(window.location.search).get("token") || "";
+}
+
+function visibilityAction(report) {
+  if (report.status === "published") {
+    return {
+      status: "hidden",
+      label: t("admin.hide_public"),
+    };
+  }
+  return {
+    status: "published",
+    label: t("admin.show_public"),
+  };
+}
+
 function renderReports(reports) {
   reportCount.textContent = reports.length;
 
@@ -307,8 +326,10 @@ function renderReports(reports) {
 
   reportsList.innerHTML = reports
     .map(
-      (report) => `
-        <article class="report-item">
+      (report) => {
+        const action = visibilityAction(report);
+        return `
+        <article class="report-item" data-report-id="${escapeHtml(report.id)}">
           <header>
             <div>
               <span class="report-id">#${report.id}</span>
@@ -335,11 +356,41 @@ function renderReports(reports) {
             </div>
           </dl>
           <p class="report-message">${escapeHtml(report.message)}</p>
-          <footer>${t("report.received", { date: window.AppI18n?.formatDateTime(report.createdAt) || new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(`${report.createdAt.replace(" ", "T")}Z`)) })}</footer>
+          <footer class="report-footer">
+            <span>${t("report.received", { date: window.AppI18n?.formatDateTime(report.createdAt) || new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(`${report.createdAt.replace(" ", "T")}Z`)) })}</span>
+            <button
+              class="button ghost report-visibility-action"
+              type="button"
+              data-report-id="${escapeHtml(report.id)}"
+              data-next-status="${escapeHtml(action.status)}"
+            >${escapeHtml(action.label)}</button>
+          </footer>
         </article>
-      `,
+      `;
+      },
     )
     .join("");
+}
+
+async function updateReportVisibility(reportId, status) {
+  adminStatus.textContent = t("status.updating");
+  const params = new URLSearchParams();
+  const token = adminToken();
+  if (token) {
+    params.set("token", token);
+  }
+
+  const response = await fetch(`/api/reports/${reportId}/status?${params.toString()}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status }),
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || t("status.update_error"));
+  }
+  await loadFilters();
+  await loadReports();
 }
 
 async function loadFilters() {
@@ -378,6 +429,20 @@ resetButton.addEventListener("click", () => {
   Object.values(choiceFilters).forEach((filter) => filter.reset());
   Object.values(dateFilters).forEach((filter) => filter.reset());
   loadReports();
+});
+
+reportsList.addEventListener("click", async (event) => {
+  const button = event.target.closest("[data-next-status]");
+  if (!button) {
+    return;
+  }
+  button.disabled = true;
+  try {
+    await updateReportVisibility(button.dataset.reportId, button.dataset.nextStatus);
+  } catch (error) {
+    adminStatus.textContent = error.message;
+    button.disabled = false;
+  }
 });
 
 document.addEventListener("click", (event) => {

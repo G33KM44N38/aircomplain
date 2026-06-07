@@ -1,4 +1,7 @@
 const { test, expect } = require("@playwright/test");
+const { MongoClient } = require("mongodb");
+
+const adminToken = "test-admin-token";
 
 test("homepage report form uses custom pickers and submits a complete route", async ({ page }) => {
   const consoleErrors = [];
@@ -105,7 +108,7 @@ test("admin filters use custom pickers", async ({ page }) => {
     });
   });
 
-  await page.goto("/admin.html");
+  await page.goto(`/admin.html?token=${adminToken}`);
 
   await expect(page.locator("#filters-form select")).toHaveCount(0);
   await expect(page.locator("#filters-form input[type='date']")).toHaveCount(0);
@@ -133,4 +136,61 @@ test("admin filters use custom pickers", async ({ page }) => {
   await expect(page.locator("#status-filter")).toHaveValue("");
   await expect(page.locator("#from-filter")).toHaveValue("");
   expect(requests.some((query) => query.includes("route="))).toBe(true);
+});
+
+test("admin can publish and hide a received testimonial end to end", async ({ page }) => {
+  const marker = `E2E_PUBLICATION_${Date.now()}`;
+  const mongoUri = process.env.MONGODB_URI;
+  const mongoDbName = process.env.MONGODB_DB || "aircomplain";
+
+  try {
+    await page.goto("/");
+    await page.locator("input[name='departureAirport']").fill("Paris");
+    await page.locator("#departure-airport-results .autocomplete-option").first().click();
+    await page.locator("input[name='arrivalAirport']").fill("Abidjan");
+    await page.locator("#arrival-airport-results .autocomplete-option").first().click();
+    await page.locator("#incident-trigger").click();
+    await page.getByRole("option", { name: /communication/i }).click();
+    await page.locator("#flight-date-trigger").click();
+    await page.locator("#flight-date-picker [data-date-value]").first().click();
+    await page.locator("input[name='email']").fill("publication-e2e@example.com");
+    await page
+      .locator("textarea[name='message']")
+      .fill(`${marker} témoignage complet pour vérifier que la réception est cachée par défaut puis publiable par l'administration.`);
+    await page.locator("input[name='consent']").check();
+    await page.locator("#report-form button[type='submit']").click();
+    await expect(page.locator("#form-status")).toContainText(/Témoignage|Testimonial/);
+
+    await page.goto("/temoignages.html");
+    await page.locator("input[name='q']").fill(marker);
+    await expect(page.locator("#reports-list")).not.toContainText(marker);
+
+    await page.goto(`/admin.html?token=${adminToken}`);
+    await page.locator("input[name='q']").fill(marker);
+    await expect(page.locator("#reports-list")).toContainText(marker);
+    await expect(page.locator("#reports-list")).toContainText(/À vérifier|To review/);
+
+    await page.getByRole("button", { name: /Afficher publiquement|Show publicly/i }).click();
+    await expect(page.locator("#reports-list")).toContainText(/Publié|Published/);
+
+    await page.goto("/temoignages.html");
+    await page.locator("input[name='q']").fill(marker);
+    await expect(page.locator("#reports-list")).toContainText(marker);
+
+    await page.goto(`/admin.html?token=${adminToken}`);
+    await page.locator("input[name='q']").fill(marker);
+    await page.getByRole("button", { name: /Masquer du public|Hide from public/i }).click();
+    await expect(page.locator("#reports-list")).toContainText(/À vérifier|Masqué|Hidden|To review/);
+
+    await page.goto("/temoignages.html");
+    await page.locator("input[name='q']").fill(marker);
+    await expect(page.locator("#reports-list")).not.toContainText(marker);
+  } finally {
+    if (mongoUri) {
+      const client = new MongoClient(mongoUri);
+      await client.connect();
+      await client.db(mongoDbName).collection("reports").deleteMany({ message: { $regex: marker } });
+      await client.close();
+    }
+  }
 });
