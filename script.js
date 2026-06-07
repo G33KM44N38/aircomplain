@@ -158,6 +158,16 @@ tabs.forEach((tab) => {
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   const data = Object.fromEntries(new FormData(form).entries());
+  const departureAirport = String(data.departureAirport || "").trim();
+  const arrivalAirport = String(data.arrivalAirport || "").trim();
+
+  if (!departureAirport || !arrivalAirport) {
+    formStatus.textContent = t("form.need_route");
+    return;
+  }
+
+  data.route = `${departureAirport} - ${arrivalAirport}`;
+  form.querySelector('[name="route"]').value = data.route;
 
   if (!data.email && !data.phone) {
     formStatus.textContent = t("form.need_contact");

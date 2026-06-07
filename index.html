@@ -140,30 +140,85 @@
           </p>
         </div>
         <form class="report-form" id="report-form">
-          <label>
-            <span data-i18n="form.route">Route concernée</span>
-            <input
-              type="text"
-              name="route"
-              list="route-suggestions"
-              placeholder="Ex. Montréal - Abidjan"
-              data-i18n-placeholder="form.route_placeholder"
-              autocomplete="off"
-              required
-            />
-            <datalist id="route-suggestions">
-              <option value="Paris - Dakar"></option>
-              <option value="Paris - Abidjan"></option>
-              <option value="Paris - Douala"></option>
-              <option value="Paris - Kinshasa"></option>
-              <option value="Montréal - Abidjan"></option>
-              <option value="New York - Dakar"></option>
-              <option value="Londres - Lagos"></option>
-              <option value="Dubaï - Nairobi"></option>
-              <option value="São Paulo - Casablanca"></option>
-              <option value="Tokyo - Johannesburg"></option>
-            </datalist>
-          </label>
+          <input type="hidden" name="route" />
+          <div class="route-grid">
+            <label>
+              <span data-i18n="form.departure_airport">Aéroport de départ</span>
+              <input
+                type="text"
+                name="departureAirport"
+                list="departure-airports"
+                placeholder="Ex. Montréal-Trudeau (YUL)"
+                data-i18n-placeholder="form.departure_airport_placeholder"
+                autocomplete="off"
+                required
+              />
+            </label>
+            <label>
+              <span data-i18n="form.arrival_airport">Aéroport d'arrivée en Afrique</span>
+              <input
+                type="text"
+                name="arrivalAirport"
+                list="africa-airports"
+                placeholder="Ex. Abidjan Félix-Houphouët-Boigny (ABJ)"
+                data-i18n-placeholder="form.arrival_airport_placeholder"
+                autocomplete="off"
+                required
+              />
+            </label>
+          </div>
+          <datalist id="departure-airports">
+            <option value="Paris Charles de Gaulle (CDG)"></option>
+            <option value="Paris Orly (ORY)"></option>
+            <option value="London Heathrow (LHR)"></option>
+            <option value="Amsterdam Schiphol (AMS)"></option>
+            <option value="Brussels Airport (BRU)"></option>
+            <option value="Frankfurt (FRA)"></option>
+            <option value="Madrid Barajas (MAD)"></option>
+            <option value="Rome Fiumicino (FCO)"></option>
+            <option value="Istanbul (IST)"></option>
+            <option value="Dubai (DXB)"></option>
+            <option value="Doha Hamad (DOH)"></option>
+            <option value="New York JFK (JFK)"></option>
+            <option value="Washington Dulles (IAD)"></option>
+            <option value="Montreal Trudeau (YUL)"></option>
+            <option value="Toronto Pearson (YYZ)"></option>
+            <option value="São Paulo Guarulhos (GRU)"></option>
+            <option value="Buenos Aires Ezeiza (EZE)"></option>
+            <option value="Tokyo Haneda (HND)"></option>
+            <option value="Tokyo Narita (NRT)"></option>
+            <option value="Singapore Changi (SIN)"></option>
+            <option value="Sydney Kingsford Smith (SYD)"></option>
+          </datalist>
+          <datalist id="africa-airports">
+            <option value="Abidjan Félix-Houphouët-Boigny (ABJ)"></option>
+            <option value="Accra Kotoka (ACC)"></option>
+            <option value="Addis Ababa Bole (ADD)"></option>
+            <option value="Algiers Houari Boumediene (ALG)"></option>
+            <option value="Bamako Modibo Keïta (BKO)"></option>
+            <option value="Brazzaville Maya-Maya (BZV)"></option>
+            <option value="Cairo (CAI)"></option>
+            <option value="Casablanca Mohammed V (CMN)"></option>
+            <option value="Conakry Ahmed Sékou Touré (CKY)"></option>
+            <option value="Cotonou Cadjehoun (COO)"></option>
+            <option value="Dakar Blaise Diagne (DSS)"></option>
+            <option value="Dar es Salaam Julius Nyerere (DAR)"></option>
+            <option value="Douala (DLA)"></option>
+            <option value="Johannesburg O.R. Tambo (JNB)"></option>
+            <option value="Kigali (KGL)"></option>
+            <option value="Kinshasa N'djili (FIH)"></option>
+            <option value="Lagos Murtala Muhammed (LOS)"></option>
+            <option value="Libreville Léon-Mba (LBV)"></option>
+            <option value="Lomé Gnassingbé Eyadéma (LFW)"></option>
+            <option value="Luanda Quatro de Fevereiro (LAD)"></option>
+            <option value="Marrakech Menara (RAK)"></option>
+            <option value="Nairobi Jomo Kenyatta (NBO)"></option>
+            <option value="Niamey Diori Hamani (NIM)"></option>
+            <option value="Nouakchott Oumtounsy (NKC)"></option>
+            <option value="Ouagadougou (OUA)"></option>
+            <option value="Tunis-Carthage (TUN)"></option>
+            <option value="Yaoundé Nsimalen (NSI)"></option>
+          </datalist>
           <label>
             <span data-i18n="form.incident">Type d'incident</span>
             <select name="incident" required>

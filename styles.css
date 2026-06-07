@@ -523,6 +523,12 @@ label {
   gap: 14px;
 }
 
+.route-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
 .field-note {
   margin: -6px 0 0;
   color: var(--muted);
@@ -812,6 +818,7 @@ textarea {
   .metric-grid,
   .split,
   .report-band,
+  .route-grid,
   .contact-grid,
   .admin-hero,
   .filters-grid,
