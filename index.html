@@ -135,21 +135,34 @@
           <p class="eyebrow" data-i18n="home.contribute">Contribuer</p>
           <h2 data-i18n="home.form_title">Signaler une expérience de voyage</h2>
           <p data-i18n="home.form_copy">
-            Ce formulaire de démonstration prépare les champs clés du futur produit: route, date,
-            catégorie, contact, impact et consentement de publication.
+            Déclarez un trajet vers l'Afrique depuis n'importe quelle région du monde, avec la date,
+            la catégorie, un contact et votre consentement de publication.
           </p>
         </div>
         <form class="report-form" id="report-form">
           <label>
             <span data-i18n="form.route">Route concernée</span>
-            <select name="route" required>
-              <option value="" data-i18n="form.route_placeholder">Choisir une route</option>
-              <option>Paris - Dakar</option>
-              <option>Paris - Abidjan</option>
-              <option>Paris - Douala</option>
-              <option>Paris - Kinshasa</option>
-              <option data-i18n="form.route_other">Autre route Afrique-Europe</option>
-            </select>
+            <input
+              type="text"
+              name="route"
+              list="route-suggestions"
+              placeholder="Ex. Montréal - Abidjan"
+              data-i18n-placeholder="form.route_placeholder"
+              autocomplete="off"
+              required
+            />
+            <datalist id="route-suggestions">
+              <option value="Paris - Dakar"></option>
+              <option value="Paris - Abidjan"></option>
+              <option value="Paris - Douala"></option>
+              <option value="Paris - Kinshasa"></option>
+              <option value="Montréal - Abidjan"></option>
+              <option value="New York - Dakar"></option>
+              <option value="Londres - Lagos"></option>
+              <option value="Dubaï - Nairobi"></option>
+              <option value="São Paulo - Casablanca"></option>
+              <option value="Tokyo - Johannesburg"></option>
+            </datalist>
           </label>
           <label>
             <span data-i18n="form.incident">Type d'incident</span>
