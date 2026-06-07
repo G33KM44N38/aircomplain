@@ -2,15 +2,20 @@ const { createServer } = require("node:http");
 const { execFile } = require("node:child_process");
 const { mkdir, readFile } = require("node:fs/promises");
 const path = require("node:path");
+const { MongoClient } = require("mongodb");
 const { Pool } = require("pg");
 
 const root = __dirname;
 const dataDir = process.env.DATA_DIR || path.join(root, "data");
 const dbPath = path.join(dataDir, "air-observatoire.sqlite");
 const databaseUrl = process.env.DATABASE_URL || "";
+const mongoUri = process.env.MONGODB_URI || "";
+const mongoDbName = process.env.MONGODB_DB || "aircomplain";
 const port = Number(process.env.PORT || 4173);
 const adminToken = process.env.ADMIN_TOKEN || "";
-const dbDriver = databaseUrl ? "postgres" : "sqlite";
+const dbDriver = mongoUri ? "mongodb" : databaseUrl ? "postgres" : "sqlite";
+const mongoClient = mongoUri ? new MongoClient(mongoUri) : null;
+let reportsCollection = null;
 const pgPool = databaseUrl
   ? new Pool({
       connectionString: databaseUrl,
@@ -51,7 +56,32 @@ function likeValue(value) {
   return `%${String(value).replaceAll("'", "''").replaceAll("%", "\\%").replaceAll("_", "\\_")}%`;
 }
 
+function escapeRegex(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 async function initDb() {
+  if (dbDriver === "mongodb") {
+    await mongoClient.connect();
+    reportsCollection = mongoClient.db(mongoDbName).collection("reports");
+    await reportsCollection.createIndex({ route: 1, incident: 1, status: 1, flightDate: 1 });
+    await reportsCollection.createIndex({ createdAt: -1 });
+    await reportsCollection.deleteMany({
+      $or: [
+        {
+          message: {
+            $in: [
+              "Test de verification production avec un temoignage assez long pour valider lenregistrement cote serveur Render.",
+              "TEST_QA_AIRCOMPLAIN temoignage temporaire pour verifier le formulaire, les filtres publics et lanonymisation des coordonnees.",
+            ],
+          },
+        },
+        { message: /^TEST_QA_AIRCOMPLAIN/ },
+      ],
+    });
+    return;
+  }
+
   if (dbDriver === "postgres") {
     await pgPool.query(`
       CREATE TABLE IF NOT EXISTS reports (
@@ -153,10 +183,45 @@ function validateReport(payload) {
   return { route, incident, flightDate, email, phone, message, consent };
 }
 
+function serializeMongoReport(report, includePrivate) {
+  const serialized = {
+    id: String(report._id),
+    route: report.route,
+    incident: report.incident,
+    flightDate: report.flightDate,
+    message: report.message,
+    consent: report.consent,
+    status: report.status,
+    createdAt: report.createdAt instanceof Date ? report.createdAt.toISOString() : report.createdAt,
+  };
+
+  if (includePrivate) {
+    serialized.email = report.email || "";
+    serialized.phone = report.phone || "";
+  }
+
+  return serialized;
+}
+
 async function createReport(payload) {
   const report = validateReport(payload);
   if (report.error) {
     return report;
+  }
+
+  if (dbDriver === "mongodb") {
+    const result = await reportsCollection.insertOne({
+      route: report.route,
+      incident: report.incident,
+      flightDate: report.flightDate,
+      email: report.email || null,
+      phone: report.phone || null,
+      message: report.message,
+      consent: true,
+      status: "pending_review",
+      createdAt: new Date(),
+    });
+    return { id: String(result.insertedId), status: "pending_review" };
   }
 
   if (dbDriver === "postgres") {
@@ -186,6 +251,38 @@ async function createReport(payload) {
   `);
 
   return { id: Number(id), status: "pending_review" };
+}
+
+function buildMongoFilters(filters, includePrivate) {
+  const query = {};
+
+  if (filters.route) {
+    query.route = filters.route;
+  }
+  if (filters.incident) {
+    query.incident = filters.incident;
+  }
+  if (filters.status) {
+    query.status = filters.status;
+  }
+  if (filters.from || filters.to) {
+    query.flightDate = {};
+    if (filters.from) {
+      query.flightDate.$gte = filters.from;
+    }
+    if (filters.to) {
+      query.flightDate.$lte = filters.to;
+    }
+  }
+  if (filters.q) {
+    const regex = new RegExp(escapeRegex(filters.q), "i");
+    query.$or = [{ message: regex }];
+    if (includePrivate) {
+      query.$or.push({ email: regex }, { phone: regex });
+    }
+  }
+
+  return query;
 }
 
 function buildPostgresFilters(filters, includePrivate) {
@@ -250,6 +347,16 @@ function buildSqliteFilters(filters, includePrivate) {
 async function listReports(filters, options = {}) {
   const includePrivate = options.includePrivate === true;
 
+  if (dbDriver === "mongodb") {
+    const projection = includePrivate ? {} : { email: 0, phone: 0 };
+    const reports = await reportsCollection
+      .find(buildMongoFilters(filters, includePrivate), { projection })
+      .sort({ createdAt: -1, _id: -1 })
+      .limit(250)
+      .toArray();
+    return reports.map((report) => serializeMongoReport(report, includePrivate));
+  }
+
   if (dbDriver === "postgres") {
     const { whereClause, values } = buildPostgresFilters(filters, includePrivate);
     const result = await pgPool.query(
@@ -304,6 +411,19 @@ async function listReports(filters, options = {}) {
 }
 
 async function getReportFilters() {
+  if (dbDriver === "mongodb") {
+    const [routes, incidents, statuses] = await Promise.all([
+      reportsCollection.distinct("route"),
+      reportsCollection.distinct("incident"),
+      reportsCollection.distinct("status"),
+    ]);
+    return {
+      routes: routes.sort(),
+      incidents: incidents.sort(),
+      statuses: statuses.sort(),
+    };
+  }
+
   if (dbDriver === "postgres") {
     const [routes, incidents, statuses] = await Promise.all([
       pgPool.query("SELECT DISTINCT route FROM reports ORDER BY route;"),
@@ -329,6 +449,9 @@ async function getReportFilters() {
 }
 
 async function countReports() {
+  if (dbDriver === "mongodb") {
+    return reportsCollection.countDocuments();
+  }
   if (dbDriver === "postgres") {
     const result = await pgPool.query("SELECT COUNT(*) AS count FROM reports;");
     return Number(result.rows[0].count);
@@ -441,7 +564,11 @@ initDb()
   .then(() => {
     createServer(handleRequest).listen(port, () => {
       console.log(`Air Afrique Observatoire running on http://localhost:${port}`);
-      console.log(dbDriver === "postgres" ? "Database: PostgreSQL" : `SQLite database: ${dbPath}`);
+      if (dbDriver === "mongodb") {
+        console.log(`Database: MongoDB (${mongoDbName})`);
+      } else {
+        console.log(dbDriver === "postgres" ? "Database: PostgreSQL" : `SQLite database: ${dbPath}`);
+      }
     });
   })
   .catch((error) => {

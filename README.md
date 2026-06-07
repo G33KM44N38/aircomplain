@@ -16,14 +16,27 @@ Ouvrir ensuite `http://localhost:4173`.
 - Tableau de bord de démonstration filtrable par route.
 - Témoignages publics anonymisés.
 - Formulaire de signalement avec email ou téléphone obligatoire.
-- Enregistrement des signalements dans une base locale SQLite ou PostgreSQL via `DATABASE_URL`.
+- Enregistrement des signalements dans MongoDB Atlas, PostgreSQL ou SQLite local.
 - Interface bilingue français/anglais.
 
 ## Base de données
 
-Par défaut, l'application utilise SQLite en local et crée automatiquement `data/air-observatoire.sqlite`.
+L'application choisit la base dans cet ordre:
 
-En production, définir `DATABASE_URL` pour utiliser PostgreSQL:
+1. `MONGODB_URI`: MongoDB Atlas, recommandé pour une DB persistante gratuite de MVP.
+2. `DATABASE_URL`: PostgreSQL.
+3. SQLite local dans `data/air-observatoire.sqlite`.
+
+MongoDB Atlas Free/M0 est adapté au MVP parce que le cluster gratuit n'expire pas. Définir dans Render:
+
+```bash
+MONGODB_URI="mongodb+srv://USER:PASSWORD@CLUSTER.mongodb.net/?retryWrites=true&w=majority"
+MONGODB_DB="aircomplain"
+```
+
+La collection utilisée est `reports`. Les index sont créés automatiquement au démarrage.
+
+Pour utiliser PostgreSQL à la place, définir `DATABASE_URL`:
 
 ```bash
 DATABASE_URL="postgres://USER:PASSWORD@HOST:PORT/DATABASE" npm start
@@ -68,6 +81,8 @@ sqlite3 data/air-observatoire.sqlite "SELECT id, route, incident, email, phone, 
 Le blueprint `render.yaml` attend:
 
 - `ADMIN_TOKEN`: généré automatiquement par Render.
-- `DATABASE_URL`: à renseigner dans Render avec l'URL PostgreSQL persistante.
+- `MONGODB_URI`: à renseigner dans Render avec l'URI MongoDB Atlas persistante.
+- `MONGODB_DB`: `aircomplain` par défaut.
+- `DATABASE_URL`: option PostgreSQL si vous migrez ensuite.
 
-Sans `DATABASE_URL`, Render retombe sur SQLite dans le filesystem de l'instance. Ce mode n'est pas adapté à la production parce que les données peuvent être perdues lors d'un redéploiement ou d'un redémarrage.
+Sans `MONGODB_URI` ni `DATABASE_URL`, Render retombe sur SQLite dans le filesystem de l'instance. Ce mode n'est pas adapté à la production parce que les données peuvent être perdues lors d'un redéploiement ou d'un redémarrage.
