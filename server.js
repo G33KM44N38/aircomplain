@@ -200,7 +200,7 @@ async function countReports() {
 async function serveStatic(request, response) {
   const requestUrl = new URL(request.url, `http://${request.headers.host}`);
   const pathname = requestUrl.pathname === "/" ? "/index.html" : requestUrl.pathname;
-  if ((pathname === "/admin.html" || pathname === "/admin.js") && !isAuthorizedAdmin(requestUrl)) {
+  if (pathname === "/admin.html" && !isAuthorizedAdmin(requestUrl)) {
     response.writeHead(401, { "Content-Type": "text/plain; charset=utf-8" });
     response.end("Acces administration non autorise.");
     return;
