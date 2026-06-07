@@ -4,12 +4,16 @@
   "private": true,
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "test": "playwright test"
   },
   "dependencies": {
     "mongodb": "^6.21.0"
   },
   "engines": {
     "node": "20.x"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.60.0"
   }
 }
