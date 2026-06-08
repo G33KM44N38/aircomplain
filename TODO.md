@@ -10,10 +10,10 @@
   - [ ] Expiration de session.
   - [ ] Retirer le token admin visible dans l'URL.
 
-- [ ] Ajouter les pages légales minimales.
-  - [ ] Politique de confidentialité.
-  - [ ] Mentions légales.
-  - [ ] Conditions de publication des témoignages.
+- [x] Ajouter les pages légales minimales.
+  - [x] Politique de confidentialité.
+  - [x] Mentions légales.
+  - [x] Conditions de publication des témoignages.
   - [ ] Contact / demande de retrait.
 
 - [ ] Durcir la modération admin.

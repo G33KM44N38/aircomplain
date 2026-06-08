@@ -79,6 +79,25 @@ test("homepage keeps mobile navigation usable", async ({ page }) => {
   await expect(page).toHaveURL(/temoignages\.html$/);
 });
 
+test("legal footer links open bilingual legal pages", async ({ page }) => {
+  await page.goto("/");
+
+  await page.getByRole("contentinfo").getByRole("link", { name: /confidentialité|privacy/i }).click();
+  await expect(page).toHaveURL(/confidentialite\.html$/);
+  await expect(page.getByRole("heading", { name: /politique de confidentialité|privacy policy/i })).toBeVisible();
+
+  await page.locator("[data-language-option='en']").click();
+  await expect(page.getByRole("heading", { name: /privacy policy/i })).toBeVisible();
+
+  await page.getByRole("contentinfo").getByRole("link", { name: /publication terms|conditions de publication/i }).click();
+  await expect(page).toHaveURL(/conditions-publication\.html$/);
+  await expect(page.getByRole("heading", { name: /publication terms|conditions de publication/i })).toBeVisible();
+
+  await page.getByRole("contentinfo").getByRole("link", { name: /legal notice|mentions légales/i }).click();
+  await expect(page).toHaveURL(/mentions-legales\.html$/);
+  await expect(page.getByRole("heading", { name: /legal notice|mentions légales/i })).toBeVisible();
+});
+
 test("admin filters use custom pickers", async ({ page }) => {
   const report = {
     id: "admin-picker-report",
