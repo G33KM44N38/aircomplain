@@ -144,11 +144,12 @@ test("all local HTML, CSS and script references remain available", async () => {
 test("private files, dotfiles and traversal return 404 without reading disk", async () => {
   for (const url of [
     "/server.js", "/package.json", "/package-lock.json", "/render.yaml", "/AGENTS.md",
-    "/.git", "/.git/config", "/.env", "/.env.local", "/tests/server-security.test.cjs",
+    "/.git", "/.git/config", "/.env", "/.env.local", "/tests/server-security.cjs",
     "/node_modules/mongodb/package.json", "/missing.js", "/assets/missing.png",
     "/../server.js", "/%2e%2e/server.js", "/assets/../../server.js",
     "/assets/%2e%2e/%2e%2e/package.json", "/..%2fserver.js", "/%2eenv",
     "/%73erver.js", "/assets\\..\\server.js", "/%00", "/%ZZ",
+    "/assets/../index.html", "/assets/%2e%2e/index.html", "/assets/../admin.html",
     "/constructor", "/__proto__",
   ]) {
     const beforeReads = reads.length;
@@ -196,13 +197,31 @@ test("exactly 64 KiB is accepted and UTF-8 is counted in bytes", async () => {
   assert.equal((await request("/api/reports", { method: "POST", body: unicode })).status, 413);
 });
 
+test("an interrupted body does not stop later requests", async () => {
+  const beforeInserts = inserted.length;
+  await new Promise((resolve) => {
+    const req = http.request({
+      hostname: "127.0.0.1", port: server.address().port, path: "/api/reports", method: "POST",
+      headers: { "Content-Length": 1000 }, agent: false,
+    });
+    req.on("error", () => {});
+    req.on("close", resolve);
+    req.write('{"message":"partial');
+    setTimeout(() => req.destroy(), 20);
+  });
+  assert.equal((await request("/")).status, 200);
+  assert.equal(inserted.length, beforeInserts);
+});
+
 for (const [url, method] of [["/api/reports", "POST"], ["/api/admin/login", "POST"], [`/api/reports/${reportId}/status`, "PATCH"]]) {
   test(`${method} ${url}: declared oversized body rejected before any body arrives`, async () => {
+    const beforeConcat = concatenated.length;
     const result = await request(url, {
       method, headers: { Cookie: cookie, "Content-Length": 1024 * 1024 * 1024 }, unfinished: true,
     });
     assert.equal(result.status, 413);
     assert.equal(result.headers.connection, "close");
+    assert.equal(concatenated.length, beforeConcat);
   });
   test(`${method} ${url}: chunked body rejected before end, without concatenating it`, async () => {
     const beforeConcat = concatenated.length;

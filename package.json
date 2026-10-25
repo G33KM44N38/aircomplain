@@ -5,13 +5,14 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "test": "playwright test"
+    "test": "playwright test",
+    "test:server": "node --test tests/server-security.cjs"
   },
   "dependencies": {
     "mongodb": "^6.21.0"
   },
   "engines": {
-    "node": "20.x"
+    "node": "22.x"
   },
   "devDependencies": {
     "@playwright/test": "^1.60.0"

@@ -5,6 +5,15 @@ const path = require("node:path");
 const { MongoClient, ObjectId } = require("mongodb");
 
 const root = __dirname;
+const publicFiles = new Set([
+  "/index.html", "/temoignages.html", "/confidentialite.html",
+  "/conditions-publication.html", "/mentions-legales.html", "/admin-login.html",
+  "/admin.html", "/styles.css", "/i18n.js", "/navigation.js", "/airport-data.js",
+  "/home-data.js", "/home-render.js", "/form-components.js", "/report-form.js",
+  "/script.js", "/public-reports.js", "/admin.js", "/admin-login.js",
+  "/assets/hero-observatoire.png",
+]);
+const maxJsonBodyBytes = 64 * 1024;
 const mongoUri = process.env.MONGODB_URI || "";
 const mongoDbName = process.env.MONGODB_DB || "aircomplain";
 const port = Number(process.env.PORT || 4173);
@@ -144,12 +153,65 @@ function redirect(response, location) {
   response.end();
 }
 
-async function readJsonBody(request) {
-  const chunks = [];
-  for await (const chunk of request) {
-    chunks.push(chunk);
+class BodyTooLargeError extends Error {
+  constructor() {
+    super("JSON body exceeds 64 KiB");
   }
-  return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+}
+
+function sendBodyError(response, error, fallbackMessage) {
+  if (error instanceof BodyTooLargeError) {
+    response.setHeader("Connection", "close");
+    sendJson(response, 413, { error: "Corps de requete trop volumineux. Limite : 64 Kio." });
+    return;
+  }
+  sendJson(response, 500, { error: fallbackMessage });
+}
+
+async function readJsonBody(request) {
+  if (Number(request.headers["content-length"]) > maxJsonBodyBytes) {
+    request.pause();
+    throw new BodyTooLargeError();
+  }
+
+  const body = await new Promise((resolve, reject) => {
+    const chunks = [];
+    let size = 0;
+
+    function cleanup() {
+      request.off("data", onData);
+      request.off("end", onEnd);
+      request.off("error", onError);
+      request.off("aborted", onAborted);
+    }
+    function onError(error) {
+      cleanup();
+      reject(error);
+    }
+    function onAborted() {
+      onError(new Error("Request body aborted"));
+    }
+    function onData(chunk) {
+      size += chunk.length;
+      if (size > maxJsonBodyBytes) {
+        // Leave the socket open just long enough to send the 413 response.
+        request.pause();
+        onError(new BodyTooLargeError());
+        return;
+      }
+      chunks.push(chunk);
+    }
+    function onEnd() {
+      cleanup();
+      resolve(Buffer.concat(chunks, size));
+    }
+
+    request.on("data", onData);
+    request.once("end", onEnd);
+    request.once("error", onError);
+    request.once("aborted", onAborted);
+  });
+  return JSON.parse(body.toString("utf8"));
 }
 
 function validateReport(payload) {
@@ -303,19 +365,19 @@ async function countReports() {
 }
 
 async function serveStatic(request, response) {
-  const requestUrl = new URL(request.url, `http://${request.headers.host}`);
-  const pathname = requestUrl.pathname === "/" ? "/index.html" : requestUrl.pathname;
+  // Match the raw path: URL parsing would normalize traversal into public paths.
+  const rawPath = request.url.split("?")[0];
+  const pathname = rawPath === "/" ? "/index.html" : rawPath;
+  if (!publicFiles.has(pathname)) {
+    response.writeHead(404);
+    response.end("Not found");
+    return;
+  }
   if (pathname === "/admin.html" && !isAuthorizedAdmin(request)) {
     redirect(response, "/admin-login.html");
     return;
   }
-  const filePath = path.normalize(path.join(root, pathname));
-
-  if (!filePath.startsWith(root)) {
-    response.writeHead(403);
-    response.end("Forbidden");
-    return;
-  }
+  const filePath = path.join(root, pathname);
 
   try {
     const body = await readFile(filePath);
@@ -351,7 +413,7 @@ async function handleRequest(request, response) {
       response.end(JSON.stringify({ authenticated: true }));
     } catch (error) {
       console.error("Admin login failed:", error);
-      sendJson(response, 500, { error: "Erreur serveur pendant la connexion." });
+      sendBodyError(response, error, "Erreur serveur pendant la connexion.");
     }
     return;
   }
@@ -376,7 +438,7 @@ async function handleRequest(request, response) {
       sendJson(response, result.error ? 400 : 201, result);
     } catch (error) {
       console.error("Report creation failed:", error);
-      sendJson(response, 500, { error: "Erreur serveur pendant l'enregistrement." });
+      sendBodyError(response, error, "Erreur serveur pendant l'enregistrement.");
     }
     return;
   }
@@ -433,7 +495,7 @@ async function handleRequest(request, response) {
       sendJson(response, result.error ? 400 : 200, result.error ? result : { report: result });
     } catch (error) {
       console.error("Report status update failed:", error);
-      sendJson(response, 500, { error: "Erreur serveur pendant la mise à jour du statut." });
+      sendBodyError(response, error, "Erreur serveur pendant la mise à jour du statut.");
     }
     return;
   }
