@@ -1,0 +1,31 @@
+name: Server security
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  node-22:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - name: Test with preinstalled Node 22, without installing packages
+        shell: bash
+        run: |
+          nodes=("$RUNNER_TOOL_CACHE"/node/22.*/x64/bin/node)
+          node="${nodes[0]}"
+          if [[ ! -x "$node" ]]; then
+            echo "::error::Node 22 must already be installed on the runner."
+            exit 1
+          fi
+          "$node" --version
+          "$node" -e 'const assert = require("node:assert/strict"); assert.match(process.version, /^v22\./); assert.equal(require("./package.json").engines.node, "22.x"); assert.equal(require("./package-lock.json").packages[""].engines.node, "22.x");'
+          "$node" --check server.js
+          "$node" --test tests/server-security.cjs
